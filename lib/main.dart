@@ -599,6 +599,8 @@ class _GameScreenState extends State<GameScreen> {
   int _timeElapsed = 0;
   int _puzzleTimeElapsed = 0;
   bool _paused = false;
+
+
   Timer? _timer;
   bool _sessionComplete = false;
 
