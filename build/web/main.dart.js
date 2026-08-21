@@ -39684,7 +39684,7 @@ if(r.r.length!==0){m=A.a3(20,B.aT.n()>>>16&255,B.aT.n()>>>8&255,B.aT.n()&255)
 l=A.bZ(9)
 s=A.f6(A.a3(56,B.aT.n()>>>16&255,B.aT.n()>>>8&255,B.aT.n()&255))
 B.b.O(k,A.c([B.hW,A.cq(q,A.bk(r.r,q,q,q,A.cb(B.aT,q,12,B.m),q,q),B.r,q,q,new A.bN(m,q,s,l,q,q,B.U),q,q,q,B.DC,q,q,q)],j))}k.push(B.f3)
-k.push(A.eS(r.w?B.Bs:A.and(B.T5,r.gac5(),q),50,q))
+k.push(A.eS(r.w?B.Bs:A.and(B.T7,r.gac5(),q),50,q))
 return A.cq(q,A.ei(k,B.el,B.a4),B.r,q,q,new A.bN(B.bj,q,o,p,n,q,B.U),q,q,q,B.fQ,q,q,q)}}
 A.afV.prototype={
 $0(){return this.a.r="Please enter your full name."},
@@ -39942,7 +39942,7 @@ f=A.c([A.a8S(new A.bX(B.DJ,A.ei(A.c([e,B.kY,new A.HI(f,d,i),B.kY,A.aoA(B.lk,A.c(
 if(j.ay){e=A.a3(235,B.bj.n()>>>16&255,B.bj.n()>>>8&255,B.bj.n()&255)
 d=A.bZ(16)
 c=A.f6(B.bv)
-f.push(A.J4(0,A.iu(A.cq(i,A.ei(A.c([B.T7,B.hX,A.bk("Game Paused",i,i,i,A.cb(B.eg,i,13,B.bx),i,i),B.yw,A.bk("Tap \u25b6 to resume",i,i,i,A.cb(B.R,i,11,B.m),i,i)],s),B.an,B.aV),B.r,i,i,new A.bN(e,i,c,d,i,i,B.U),i,i,i,B.DQ,i,i,i),i,i)))}if(j.as&&j.e!==j.d.length-1){e=j.cy
+f.push(A.J4(0,A.iu(A.cq(i,A.ei(A.c([B.T6,B.hX,A.bk("Game Paused",i,i,i,A.cb(B.eg,i,13,B.bx),i,i),B.yw,A.bk("Tap \u25b6 to resume",i,i,i,A.cb(B.R,i,11,B.m),i,i)],s),B.an,B.aV),B.r,i,i,new A.bN(e,i,c,d,i,i,B.U),i,i,i,B.DQ,i,i,i),i,i)))}if(j.as&&j.e!==j.d.length-1){e=j.cy
 d=e.length
 c=j.e
 n=d>c?e[c]:j.ax
@@ -85286,8 +85286,8 @@ B.ND=new A.c2(20,null,B.T3,null)
 B.NE=new A.c2(6,null,null,null)
 B.yt=new A.c2(8,null,null,null)
 B.NF=new A.c2(1/0,1/0,null,null)
-B.T6=new A.j3("\u2192",null,B.yY,null,null,null,null,null,null)
-B.NG=new A.c2(20,null,B.T6,null)
+B.T5=new A.j3("\u2192",null,B.yY,null,null,null,null,null,null)
+B.NG=new A.c2(20,null,B.T5,null)
 B.yu=new A.c2(null,10,null,null)
 B.NH=new A.c2(null,12,null,null)
 B.hW=new A.c2(null,14,null,null)
@@ -85681,9 +85681,9 @@ B.P6=new A.k(!0,B.l,null,".AppleSystemUIFont",null,null,null,null,null,null,null
 B.T2=new A.dp(B.QR,B.PO,B.QS,B.Rj,B.Pv,B.PD,B.Q6,B.Re,B.Qj,B.RF,B.P_,B.Ph,B.RC,B.RX,B.P6)
 B.Sz=new A.k(!0,B.am,null,null,null,null,40,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.T4=new A.j3("\u2713",null,B.Sz,null,null,null,null,null,null)
-B.T5=new A.j3("View Puzzle's \u2192",null,null,null,null,null,null,null,null)
 B.Qi=new A.k(!0,null,null,null,null,null,26,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.T7=new A.j3("\u23f8",null,B.Qi,null,null,null,null,null,null)
+B.T6=new A.j3("\u23f8",null,B.Qi,null,null,null,null,null,null)
+B.T7=new A.j3("View Puzzles \u2192",null,null,null,null,null,null,null,null)
 B.Wn=new A.aal(0,"system")
 B.JI=new A.h(0.056,0.024)
 B.JW=new A.h(0.108,0.3085)
