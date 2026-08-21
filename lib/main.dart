@@ -262,10 +262,6 @@ String _todayLabel() {
   return '${months[now.month - 1]} ${now.day}, ${now.year}';
 }
 
-int _puzzleSetNumber() {
-  final now = DateTime.now();
-  return now.difference(DateTime(now.year, 1, 1)).inDays + 1;
-}
 
 const _kbdRows = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -415,7 +411,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 5),
         Text(
-          'Daily puzzles · #${_puzzleSetNumber()} · ${_todayLabel()}',
+          'Daily puzzles · ${_todayLabel()}',
           style: AppText.sans(size: 11, color: AppColors.muted),
         ),
       ],
@@ -483,7 +479,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
                 : ElevatedButton(
                     onPressed: _submit,
-                    child: const Text("Today's Puzzle →"),
+                    child: const Text("View Puzzle's →"),
                   ),
           ),
         ],
@@ -743,6 +739,72 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   // ─── Skip ─────────────────────────────────────────────────────────────────
+  void _confirmSkip() {
+    if (_paused) {
+      _showToast('Resume the timer first');
+      return;
+    }
+    if (_solved || _sessionComplete) return;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded, size: 34, color: AppColors.amber),
+              const SizedBox(height: 12),
+              Text('Skip this puzzle?', style: AppText.mono(size: 16, weight: FontWeight.w700, color: AppColors.text)),
+              const SizedBox(height: 8),
+              Text(
+                "You won't get credit for solving it, and this can't be undone.",
+                textAlign: TextAlign.center,
+                style: AppText.sans(size: 12, color: AppColors.muted),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.border),
+                        foregroundColor: AppColors.sub,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text('Cancel', style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.sub)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        _skipPuzzle();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.amber,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text('Skip Puzzle', style: AppText.sans(size: 13, weight: FontWeight.w700, color: Colors.black)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _skipPuzzle() {
     if (_paused) {
@@ -838,20 +900,6 @@ class _GameScreenState extends State<GameScreen> {
     ));
   }
 
-  void _restart() {
-    setState(() {
-      dailySentences = MockSentenceService.getDailyPuzzles().take(3).toList();
-      _puzzleIndex = 0;
-      _loadPuzzle(0);
-      _timeElapsed = 0;
-      _paused = false;
-      _sessionComplete = false;
-      _hintsUsedPerPuzzle.clear();
-      _puzzleTimes.clear();
-      _puzzleWasSkipped.clear();
-    });
-    _startTimer();
-  }
 
   void _signOut() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
 
@@ -1321,20 +1369,6 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: _restart,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.border),
-                      foregroundColor: AppColors.sub,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('Play Again', style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.sub)),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
                   child: TextButton(
                     onPressed: _signOut,
                     child: Text('Sign Out', style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.red)),
@@ -1383,7 +1417,7 @@ class _GameScreenState extends State<GameScreen> {
             icon: Icons.skip_next_rounded,
             color: AppColors.muted,
             disabled: _inputLocked,
-            onTap: _skipPuzzle,
+            onTap: _confirmSkip,
           ),
         ],
       ),
