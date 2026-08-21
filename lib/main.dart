@@ -506,10 +506,6 @@ class _LoginScreenState extends State<LoginScreen> {
           style: AppText.mono(size: 20, weight: FontWeight.w700, letterSpacing: 4, color: AppColors.text),
         ),
         const SizedBox(height: 5),
-        Text(
-          'Daily puzzles · ${_todayLabel()}',
-          style: AppText.sans(size: 11, color: AppColors.muted),
-        ),
       ],
     );
   }
