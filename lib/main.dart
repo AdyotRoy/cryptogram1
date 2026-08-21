@@ -1523,7 +1523,7 @@ class _GameScreenState extends State<GameScreen> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 6,),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ..._kbdRows.map(_buildKbdRow),
             const SizedBox(height: 6),
