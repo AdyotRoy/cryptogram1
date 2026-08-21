@@ -371,10 +371,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 32),
                       _buildCard(),
                       const SizedBox(height: 16),
-                      Text(
-                        'Demo: any valid email · password ≥ 4 chars',
-                        style: AppText.sans(size: 11, color: AppColors.muted),
-                      ),
                     ],
                   ),
                 ),
