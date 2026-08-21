@@ -39865,7 +39865,7 @@ i=A.bZ(7)
 h=A.f6(A.a3(13,B.j.n()>>>16&255,B.j.n()>>>8&255,B.j.n()&255))
 g=A.nG(B.Ei,k?A.a3(71,B.T.n()>>>16&255,B.T.n()>>>8&255,B.T.n()&255):B.T,e,15)
 p.push(A.iL(B.W,!0,o,A.wV(!1,m,!0,A.cq(e,A.e3(A.c([g,B.NE,A.bk("Clear",e,e,e,A.cY(e,e,k?A.a3(71,B.T.n()>>>16&255,B.T.n()>>>8&255,B.T.n()&255):B.T,e,e,e,e,e,"monospace",e,e,13,e,e,B.m,e,e,!0,e,e,e,e,e,e,e,e),e,e)],l),B.ay,B.aV),B.r,e,e,new A.bN(e,e,h,i,e,e,B.U),e,e,e,B.DP,e,e,e),e,!0,e,e,e,e,e,e,j,e,e,e,e),B.r,B.iR,0,e,e,e,e,e,B.ci))
-return new A.HX(d,!0,new A.aeR(f),A.ato(B.bi,A.ei(A.c([s,r,q,new A.bX(B.DD,n,e),A.cq(e,A.yQ(!0,new A.bX(B.DT,A.ei(p,B.an,B.aV),e),!1),B.r,B.fA,e,e,e,e,e,e,e,e,e)],l),B.an,B.a4)),e)},
+return new A.HX(d,!0,new A.aeR(f),A.ato(B.bi,A.ei(A.c([s,r,q,new A.bX(B.DD,n,e),A.cq(e,A.yQ(!0,new A.bX(B.DU,A.ei(p,B.an,B.aV),e),!1),B.r,B.fA,e,e,e,e,e,e,e,e,e)],l),B.an,B.a4)),e)},
 a0r(){var s=this,r=null,q=s.ax,p=s.ay,o=A.qC(A.bk("DAILY CRYPTOGRAM",r,r,r,A.cY(r,r,B.bu,r,r,r,r,r,"monospace",r,r,13,r,r,B.ax,r,r,!0,r,3,r,r,r,r,r,r),B.d0,r)),n=s.a
 return A.cq(r,A.yQ(!1,A.cq(r,A.e3(A.c([new A.Sr(q,p,s.gack(),r),o,new A.P4(n.d,n.c,new A.aer(s),s.gOr(),r)],t.p),B.ay,B.a4),B.r,r,r,B.Ac,r,54,r,B.mU,r,r,r),!0),B.r,B.fA,r,r,r,r,r,r,r,r,r)},
 a0C(){var s=this,r=null,q=s.guH(),p=new A.aH(q,new A.aeu(s),A.Y(q).j("aH<1>")).gF(0),o=q.length,n=o===0?0:p/o
@@ -41053,7 +41053,7 @@ K(a){var s=null,r=A.bm(a,B.bE,t.w).w.r.b+8,q=this.c.S(0,new A.h(8,r)),p=A.ei(thi
 $.a0()
 o=A.aIV(new A.wl(o))
 o.toString
-return new A.bX(new A.ad(8,r,8,8),new A.hG(new A.Gs(q),A.cq(s,A.azI(A.vU(new A.bX(B.DU,p,s),new A.i0(B.CE.cv(a),s,s,s,A.yP(B.lM,new A.aK(B.CI.cv(a),1,B.t,-1))),B.dh),new A.AQ(new A.vp(o),n)),B.a3,s,s,B.My,s,s,s,s,s,s,222),s),s)}}
+return new A.bX(new A.ad(8,r,8,8),new A.hG(new A.Gs(q),A.cq(s,A.azI(A.vU(new A.bX(B.DT,p,s),new A.i0(B.CE.cv(a),s,s,s,A.yP(B.lM,new A.aK(B.CI.cv(a),1,B.t,-1))),B.dh),new A.AQ(new A.vp(o),n)),B.a3,s,s,B.My,s,s,s,s,s,s,222),s),s)}}
 A.n9.prototype={
 ag(){return new A.B_()}}
 A.B_.prototype={
@@ -83576,8 +83576,8 @@ B.DR=new A.ad(40,16,40,16)
 B.DS=new A.ad(40,24,40,24)
 B.mX=new A.ad(4,0,4,0)
 B.Wf=new A.ad(4,4,4,5)
-B.DT=new A.ad(6,60,6,60)
-B.DU=new A.ad(6,6,6,6)
+B.DT=new A.ad(6,6,6,6)
+B.DU=new A.ad(6,80,6,80)
 B.DV=new A.ad(8,0,8,0)
 B.DW=new A.ad(8,2,8,5)
 B.DX=new A.ad(8,4,8,4)
