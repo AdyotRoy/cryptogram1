@@ -104,13 +104,6 @@ class CryptogramEngine {
 class MockSentenceService {
   // Pool of accessible, easy-to-medium length phrases and quotes
   static const List<String> _sentencePool = [
-    "hello world",
-    "keep it simple and focus",
-    "flutter makes app development fun",
-    "accessibility makes technology better for all",
-    "practice makes perfect every day",
-    "learning to code opens new doors",
-    "puzzles sharpen the mind",
     "stay curious and keep learning",
     "consistency brings great success",
     "creativity is intelligence having fun",
@@ -226,7 +219,7 @@ class MockSentenceService {
     final now = DateTime.now();
     // Unique seed based on Year, Month, and Day (YYYYMMDD)
     final seed = now.year * 10000 + now.month * 100 + now.day;
-    final random = Random(seed);
+    final random = Random();
 
     final List<String> poolCopy = List.from(_sentencePool);
     poolCopy.shuffle(random);
