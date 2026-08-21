@@ -1222,7 +1222,7 @@ class _GameScreenState extends State<GameScreen> {
     Color borderColor = AppColors.border;
     Color guessColor = AppColors.text;
     Color cellBg = Colors.transparent;
-    Color cipherColor = AppColors.muted;
+    Color cipherColor = Colors.white;
 
     if (isSelected) {
       borderColor = AppColors.primary;
