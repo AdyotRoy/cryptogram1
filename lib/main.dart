@@ -1528,15 +1528,6 @@ class _GameScreenState extends State<GameScreen> {
     final wrong = !correct && _userMap.values.contains(key);
 
     Color bg = AppColors.kbdKey, fg = AppColors.text, border = Colors.white.withOpacity(0.05);
-    if (correct) {
-      bg = AppColors.green.withOpacity(0.18);
-      fg = AppColors.green;
-      border = AppColors.green.withOpacity(0.28);
-    } else if (wrong) {
-      bg = Colors.white.withOpacity(0.04);
-      fg = const Color(0xFF4E5A6A);
-      border = Colors.white.withOpacity(0.07);
-    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2.5),
