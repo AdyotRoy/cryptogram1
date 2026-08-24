@@ -969,7 +969,6 @@ class _GameScreenState extends State<GameScreen> {
       unawaited(_submitSessionResults());
       _timer?.cancel();
       setState(() => _sessionComplete = true);
-      unawaited(_submitSessionResults());
     } else {
       setState(() {
         _puzzleIndex++;
