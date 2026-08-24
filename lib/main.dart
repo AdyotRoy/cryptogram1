@@ -692,6 +692,7 @@ class _GameScreenState extends State<GameScreen> {
 
   Timer? _timer;
   bool _sessionComplete = false;
+  final ScrollController _scrollController = ScrollController();
 
   // Per-puzzle summary tracking (index-aligned with dailySentences)
   final List<int> _hintsUsedPerPuzzle = [];
@@ -711,6 +712,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -1121,7 +1123,11 @@ class _GameScreenState extends State<GameScreen> {
 
     return Stack(
       children: [
-        SingleChildScrollView(
+        Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _scrollController,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Column(
@@ -1171,6 +1177,7 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
+        ),
         ),
 
         if (_paused)
