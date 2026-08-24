@@ -30,10 +30,18 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://dtexnaxntgsunphkpnac.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0ZXhuYXhudGdzdW5waGtwbmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NjUxOTgsImV4cCI6MjEwMzE0MTE5OH0.iNNeOPYL8765xOhepnEW-4QBEtA4QJ_UOpk3cAh-abQ',
+  );
   runApp(const CryptogramApp());
 }
+
+final supabase = Supabase.instance.client;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SOURCE LOGIC — untouched from the original cryptogram-main project
@@ -387,9 +395,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
-  }
-
-  void _submit() async {
+  }void _submit() async {
     final fullName = _fullNameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
@@ -419,7 +425,28 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = '';
     });
-    await Future.delayed(const Duration(milliseconds: 480));
+
+    String userId;
+    try {
+      try {
+        final res = await supabase.auth.signInWithPassword(email: email, password: password);
+        userId = res.user!.id;
+      } on AuthException {
+        final res = await supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: {'full_name': fullName},
+        );
+        userId = res.user!.id;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Sign-in failed: $e';
+      });
+      return;
+    }
 
     if (!mounted) return;
     // Derive a display username from the email local part.
@@ -427,7 +454,7 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => GameScreen(username: username, fullName: fullName),
+        builder: (_) => GameScreen(userId: userId, username: username, fullName: fullName),
       ),
     );
   }
@@ -567,9 +594,9 @@ class _LoginScreenState extends State<LoginScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
                 : ElevatedButton(
-                    onPressed: _submit,
-                    child: const Text("View Puzzles →"),
-                  ),
+              onPressed: _submit,
+              child: const Text("View Puzzles →"),
+            ),
           ),
         ],
       ),
@@ -655,9 +682,10 @@ class _DotGridPainter extends CustomPainter {
 // ─── GameScreen (replaces views/cryptogram_screen.dart) ───────────────────────
 
 class GameScreen extends StatefulWidget {
+  final String userId;
   final String username;
   final String fullName;
-  const GameScreen({super.key, required this.username, required this.fullName});
+  const GameScreen({super.key, required this.userId, required this.username, required this.fullName});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -796,6 +824,7 @@ class _GameScreenState extends State<GameScreen> {
       setState(() => _solved = true);
       _recordPuzzleResult(skipped: false);
       if (_isLastPuzzle) {
+        unawaited(_submitSessionResults());
         _timer?.cancel();
         setState(() => _sessionComplete = true);
       }
@@ -819,6 +848,33 @@ class _GameScreenState extends State<GameScreen> {
     _hintsUsedPerPuzzle.add(3 - _hintsLeft);
     _puzzleTimes.add(_puzzleTimeElapsed);
     _puzzleWasSkipped.add(skipped);
+  }
+
+  Future<void> _submitSessionResults() async {
+    try {
+      final session = await supabase.from('game_sessions').insert({
+        'user_id': widget.userId,
+        'full_name': widget.fullName,
+        'total_time_seconds': _timeElapsed,
+        'puzzles_completed': _puzzleWasSkipped.where((s) => !s).length,
+        'puzzles_skipped': _puzzleWasSkipped.where((s) => s).length,
+        'total_hints_used': _hintsUsedPerPuzzle.fold<int>(0, (a, b) => a + b),
+      }).select().single();
+
+      final rows = List.generate(dailySentences.length, (i) => {
+        'session_id': session['id'],
+        'user_id': widget.userId,
+        'puzzle_number': i + 1,
+        'sentence': dailySentences[i],
+        'time_taken_seconds': _puzzleTimes[i],
+        'hints_used': _hintsUsedPerPuzzle[i],
+        'was_skipped': _puzzleWasSkipped[i],
+      });
+      await supabase.from('cryptogram_results').insert(rows);
+    } catch (e) {
+      if (!mounted) return;
+      _showToast('Could not save results: $e');
+    }
   }
 
   // ─── Advance to next puzzle ───────────────────────────────────────────────
@@ -910,8 +966,10 @@ class _GameScreenState extends State<GameScreen> {
     _showToast('Puzzle skipped');
 
     if (_isLastPuzzle) {
+      unawaited(_submitSessionResults());
       _timer?.cancel();
       setState(() => _sessionComplete = true);
+      unawaited(_submitSessionResults());
     } else {
       setState(() {
         _puzzleIndex++;
@@ -1014,13 +1072,21 @@ class _GameScreenState extends State<GameScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.bg,
-        body: Column(
+        body: Stack(
           children: [
-            _buildHeader(),
-            _buildProgressBars(),
-            Expanded(child: _buildPuzzleArea()),
-            _buildControlRow(),
-            _buildKeyboard(),
+            Column(
+              children: [
+                _buildHeader(),
+                _buildProgressBars(),
+                Expanded(child: _buildPuzzleArea()),
+                _buildControlRow(),
+                _buildKeyboard(),
+              ],
+            ),
+            if (_sessionComplete)
+              Positioned.fill(
+                child: _buildAllSolvedOverlay(),
+              ),
           ],
         ),
       ),
@@ -1094,8 +1160,8 @@ class _GameScreenState extends State<GameScreen> {
                   color: done
                       ? (skipped ? AppColors.amber : AppColors.green)
                       : current
-                          ? AppColors.primary
-                          : AppColors.border,
+                      ? AppColors.primary
+                      : AppColors.border,
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: done
@@ -1124,60 +1190,60 @@ class _GameScreenState extends State<GameScreen> {
     return Stack(
       children: [
         Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
             controller: _scrollController,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+                        ),
+                        child: Text(
+                          'Puzzle ${_puzzleIndex + 1} of ${dailySentences.length}',
+                          style: AppText.sans(size: 11, weight: FontWeight.w600, color: AppColors.primary),
+                        ),
                       ),
-                      child: Text(
-                        'Puzzle ${_puzzleIndex + 1} of ${dailySentences.length}',
-                        style: AppText.sans(size: 11, weight: FontWeight.w600, color: AppColors.primary),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-
-                // Cipher words
-                ImageFiltered(
-                  imageFilter: _paused ? ImageFilter.blur(sigmaX: 10, sigmaY: 10) : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                  child: Wrap(
-                    spacing: 16,
-                    runSpacing: 20,
-                    alignment: WrapAlignment.center,
-                    children: _engine.encryptedText.toUpperCase().split(' ').map(_buildWord).toList(),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 22),
+                  const SizedBox(height: 22),
 
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _dotStat('$solvedCount/${letters.length} solved', AppColors.primary),
-                    _divider(),
-                    _hintStat(),
-                    _divider(),
-                    _dotStat('Total ${formatTime(_timeElapsed)}', AppColors.muted),
-                  ],
-                ),
-              ],
+                  // Cipher words
+                  ImageFiltered(
+                    imageFilter: _paused ? ImageFilter.blur(sigmaX: 10, sigmaY: 10) : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 20,
+                      alignment: WrapAlignment.center,
+                      children: _engine.encryptedText.toUpperCase().split(' ').map(_buildWord).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _dotStat('$solvedCount/${letters.length} solved', AppColors.primary),
+                      _divider(),
+                      _hintStat(),
+                      _divider(),
+                      _dotStat('Total ${formatTime(_timeElapsed)}', AppColors.muted),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
 
         if (_paused)
@@ -1202,15 +1268,14 @@ class _GameScreenState extends State<GameScreen> {
           ),
 
         if (_solved && !_isLastPuzzle) Positioned.fill(child: _buildPuzzleSolvedOverlay()),
-        if (_sessionComplete) Positioned.fill(child: _buildAllSolvedOverlay()),
       ],
     );
   }
 
   Widget _buildWord(String word) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: word.split('').map(_buildCell).toList(),
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: word.split('').map(_buildCell).toList(),
+  );
 
   Widget _buildCell(String ch) {
     if (!RegExp(r'[A-Z]').hasMatch(ch)) {
@@ -1243,9 +1308,9 @@ class _GameScreenState extends State<GameScreen> {
       onTap: _inputLocked
           ? null
           : () => setState(() {
-                _selectedCipher = ch;
-                _checked = false;
-              }),
+        _selectedCipher = ch;
+        _checked = false;
+      }),
       child: AbsorbPointer(
         absorbing: _inputLocked,
         child: SizedBox(
@@ -1268,28 +1333,28 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _dotStat(String label, Color dot) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
-          const SizedBox(width: 4),
-          Text(label, style: AppText.sans(size: 12, color: AppColors.muted)),
-        ]),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 6, height: 6, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+      const SizedBox(width: 4),
+      Text(label, style: AppText.sans(size: 12, color: AppColors.muted)),
+    ]),
+  );
 
   Widget _hintStat() => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.lightbulb_outline_rounded, size: 12, color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted),
-          const SizedBox(width: 4),
-          Text('$_hintsLeft hint${_hintsLeft != 1 ? 's' : ''} left',
-              style: AppText.sans(size: 12, color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted)),
-        ]),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Icons.lightbulb_outline_rounded, size: 12, color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted),
+      const SizedBox(width: 4),
+      Text('$_hintsLeft hint${_hintsLeft != 1 ? 's' : ''} left',
+          style: AppText.sans(size: 12, color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted)),
+    ]),
+  );
 
   Widget _divider() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Text('·', style: AppText.sans(size: 12, color: AppColors.border)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    child: Text('·', style: AppText.sans(size: 12, color: AppColors.border)),
+  );
 
   // ─── Puzzle solved overlay (intermediate) ─────────────────────────────────
 
@@ -1472,10 +1537,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _miniStat(String value, String label, Color color) => Column(children: [
-        Text(value, style: AppText.sans(size: 15, weight: FontWeight.w700, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: AppText.sans(size: 10, color: AppColors.muted, letterSpacing: 0.8)),
-      ]);
+    Text(value, style: AppText.sans(size: 15, weight: FontWeight.w700, color: color)),
+    const SizedBox(height: 2),
+    Text(label, style: AppText.sans(size: 10, color: AppColors.muted, letterSpacing: 0.8)),
+  ]);
 
   // ─── Control row ──────────────────────────────────────────────────────────
 
@@ -1525,9 +1590,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildKbdRow(List<String> keys) => Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: keys.map(_buildKey).toList()),
-      );
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: keys.map(_buildKey).toList()),
+  );
 
   Widget _buildKey(String key) {
     final blocked = _inputLocked;
