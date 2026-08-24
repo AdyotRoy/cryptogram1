@@ -1229,16 +1229,7 @@ class _GameScreenState extends State<GameScreen> {
       cellBg = AppColors.primary.withOpacity(0.09);
       cipherColor = AppColors.primary;
     }
-    if (isCorrect) {
-      borderColor = AppColors.green;
-      guessColor = AppColors.green;
-      cellBg = AppColors.green.withOpacity(0.07);
-    }
-    if (isWrong) {
-      borderColor = AppColors.red;
-      guessColor = AppColors.red;
-      cellBg = AppColors.red.withOpacity(0.07);
-    }
+
     if (isHinted && !isSelected) cipherColor = AppColors.amber;
 
     return GestureDetector(
@@ -1493,14 +1484,6 @@ class _GameScreenState extends State<GameScreen> {
             color: AppColors.amber,
             disabled: _hintsLeft <= 0 || _inputLocked,
             onTap: _useHint,
-          ),
-          const SizedBox(width: 8),
-          _PillButton(
-            label: 'Check',
-            icon: Icons.check_rounded,
-            color: AppColors.primary,
-            disabled: _inputLocked,
-            onTap: _checkAnswers,
           ),
           const SizedBox(width: 8),
           _PillButton(
