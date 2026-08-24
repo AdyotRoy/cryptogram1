@@ -1086,6 +1086,8 @@ class _GameScreenState extends State<GameScreen> {
                 _buildKeyboard(),
               ],
             ),
+            if (_solved && !_isLastPuzzle && !_sessionComplete)
+              Positioned.fill(child: _buildPuzzleSolvedOverlay()),
             if (_sessionComplete)
               Positioned.fill(
                 child: _buildAllSolvedOverlay(),
