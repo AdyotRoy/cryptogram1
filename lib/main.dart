@@ -850,27 +850,30 @@ class _GameScreenState extends State<GameScreen> {
     _puzzleWasSkipped.add(skipped);
   }
 
+  bool _isSubmitting = false;
+
+
   Future<void> _submitSessionResults() async {
+    if (_isSubmitting) return;
+    _isSubmitting = true;
+
     try {
-      final session = await supabase.from('game_sessions').insert({
+      final puzzleDetails = List.generate(dailySentences.length, (i) => {
+        'puzzle_number': i + 1,
+        'sentence': dailySentences[i],
+        'time_taken_seconds': _puzzleTimes.length > i ? _puzzleTimes[i] : 0,
+        'hints_used': _hintsUsedPerPuzzle.length > i ? _hintsUsedPerPuzzle[i] : 0,
+        'was_skipped': _puzzleWasSkipped.length > i ? _puzzleWasSkipped[i] : false,
+      });
+
+      await supabase.from('game_sessions').insert({
         'user_id': widget.userId,
-        'full_name': widget.fullName,
         'total_time_seconds': _timeElapsed,
         'puzzles_completed': _puzzleWasSkipped.where((s) => !s).length,
         'puzzles_skipped': _puzzleWasSkipped.where((s) => s).length,
         'total_hints_used': _hintsUsedPerPuzzle.fold<int>(0, (a, b) => a + b),
-      }).select().single();
-
-      final rows = List.generate(dailySentences.length, (i) => {
-        'session_id': session['id'],
-        'user_id': widget.userId,
-        'puzzle_number': i + 1,
-        'sentence': dailySentences[i],
-        'time_taken_seconds': _puzzleTimes[i],
-        'hints_used': _hintsUsedPerPuzzle[i],
-        'was_skipped': _puzzleWasSkipped[i],
+        'puzzle_breakdown': puzzleDetails,
       });
-      await supabase.from('cryptogram_results').insert(rows);
     } catch (e) {
       if (!mounted) return;
       _showToast('Could not save results: $e');
