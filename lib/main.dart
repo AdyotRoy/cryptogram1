@@ -227,7 +227,7 @@ class MockSentenceService {
     final now = DateTime.now();
     // Unique seed based on Year, Month, and Day (YYYYMMDD)
     final seed = now.year * 10000 + now.month * 100 + now.day;
-    final random = Random();
+    final random = Random(seed);
 
     final List<String> poolCopy = List.from(_sentencePool);
     poolCopy.shuffle(random);
@@ -595,7 +595,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
                 : ElevatedButton(
               onPressed: _submit,
-              child: const Text("View Puzzles →"),
+              child: const Text("Today's Puzzle →"),
             ),
           ),
         ],
@@ -914,7 +914,7 @@ class _GameScreenState extends State<GameScreen> {
               Text('Skip this puzzle?', style: AppText.mono(size: 16, weight: FontWeight.w700, color: AppColors.text)),
               const SizedBox(height: 8),
               Text(
-                "You won't get credit for solving it, and this can't be undone.",
+                "This puzzle will be marked as unsolved and you will be unable to attempt it again.",
                 textAlign: TextAlign.center,
                 style: AppText.sans(size: 12, color: AppColors.muted),
               ),
@@ -1017,39 +1017,21 @@ class _GameScreenState extends State<GameScreen> {
     _checkSolved();
   }
 
-  // ─── Check ────────────────────────────────────────────────────────────────
-
-  void _checkAnswers() {
-    if (_inputLocked) return;
-    setState(() => _checked = true);
-
-    final letters = _cipherLetters;
-    final wrong = letters.where((cl) => _userMap[cl] != null && _userMap[cl] != _decodeMap[cl]).length;
-    final right = letters.where((cl) => _userMap[cl] == _decodeMap[cl]).length;
-
-    if (wrong > 0) {
-      _showToast('$wrong letter${wrong > 1 ? 's' : ''} incorrect');
-    } else if (right == letters.length) {
-      _showToast('Perfect! 🎉');
-    } else {
-      _showToast('No mistakes so far!');
-    }
-  }
 
   // ─── Toast ────────────────────────────────────────────────────────────────
 
   void _showToast(String message) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: AppText.sans(size: 12, color: AppColors.sub), textAlign: TextAlign.center),
+      content: Text(message, style: AppText.sans(size: 20, color: AppColors.sub), textAlign: TextAlign.center),
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
         side: const BorderSide(color: AppColors.border),
       ),
       behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-      duration: const Duration(milliseconds: 2400),
+      margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 16),
+      duration: const Duration(milliseconds: 4000),
       elevation: 6,
     ));
   }
