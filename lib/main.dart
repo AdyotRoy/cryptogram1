@@ -1023,7 +1023,7 @@ class _GameScreenState extends State<GameScreen> {
   void _showToast(String message) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: AppText.sans(size: 20, color: AppColors.sub), textAlign: TextAlign.center),
+      content: Text(message, style: AppText.sans(size: 15, color: AppColors.sub), textAlign: TextAlign.center),
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
@@ -1038,6 +1038,16 @@ class _GameScreenState extends State<GameScreen> {
 
 
   void _signOut() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+
+  void _seeLeaderboard() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
+    );
+  }
+
 
   // ─── Build ────────────────────────────────────────────────────────────────
 
@@ -1507,7 +1517,16 @@ class _GameScreenState extends State<GameScreen> {
                 Text('$totalHints hint${totalHints != 1 ? 's' : ''} used total',
                     style: AppText.sans(size: 11, color: AppColors.muted)),
 
-                const SizedBox(height: 20),
+                const SizedBox(height:20),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: _seeLeaderboard,
+                      child: Text('See Leaderboard', style: AppText.sans(size: 13, weight: FontWeight.w600, color: Colors.white))
+                  )
+                ),
+
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
@@ -1629,6 +1648,7 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
+
 
 // ─── Timer badge ──────────────────────────────────────────────────────────────
 
