@@ -254,7 +254,7 @@ class MockSentenceService {
     poolCopy.shuffle(random);
 
     // Pick top 5 for today
-    return poolCopy.take(5).toList();
+    return poolCopy.take(1).toList();
   }
 }
 
@@ -822,7 +822,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    dailySentences = MockSentenceService.getDailyPuzzles().take(3).toList();
+    dailySentences = MockSentenceService.getDailyPuzzles().take(1).toList();
     _loadPuzzle(_puzzleIndex);
     _startTimer();
   }
