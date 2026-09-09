@@ -1568,7 +1568,7 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(height: 10),
                 Text('All Done, $firstName!', style: AppText.mono(size: 19, weight: FontWeight.w700, color: AppColors.green)),
                 const SizedBox(height: 4),
-                Text('You finished all ${dailySentences.length} puzzles', style: AppText.sans(size: 12, color: AppColors.muted)),
+                Text('You finished the puzzle', style: AppText.sans(size: 12, color: AppColors.muted)),
                 const SizedBox(height: 20),
 
                 Text(formatTime(_timeElapsed), style: AppText.mono(size: 36, weight: FontWeight.w700, color: AppColors.amber)),

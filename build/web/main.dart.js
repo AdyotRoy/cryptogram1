@@ -42820,18 +42820,12 @@ p=B.a_.c5(0.07)
 l=A.c9(12)
 k=A.ft(B.a_.c5(0.2))
 return A.cA(i,A.j6(A.cA(i,A.eD(A.c([B.Us,B.z8,q,B.z9,n,B.P5,A.cA(i,A.eo(A.c([B.FC,B.i9,A.rH(A.bt("Puzzle "+(j.e+2)+" unlocked",i,i,i,A.ci(B.a_,i,13,B.ay),i,i))],m),B.az,B.a7),B.r,i,i,new A.bX(p,i,k,l,i,i,B.V),i,i,i,B.no,i,i,i),B.fk,A.f3(A.atB(A.bt("Next Puzzle \u2192",i,i,i,A.ci(B.k,i,14,B.ay),i,i),j.gacu(),i),i,1/0)],m),B.an,B.aV),B.r,i,B.AT,new A.bX(B.bK,i,f,g,r,i,B.V),i,i,B.h3,B.np,i,i,i),i,i),B.r,h,i,i,i,i,i,i,i,i,i)},
-a42(){var s,r,q,p,o,n=this,m=null,l="monospace",k=B.b.qb(n.db,0,new A.akh()),j=B.b.gP(n.a.e.split(" ")),i=B.b.p(n.dy,!0),h=B.dq.c5(0.9),g=A.c9(24),f=A.ft(B.bz),e=A.c([new A.da(0,B.cm,B.l.c5(0.6),B.f,80)],t.sq),d=A.bt(i?"\ud83c\udfc1":"\ud83c\udf89",m,m,m,B.Sv,m,m),c=A.bt("All Done, "+j+"!",m,m,m,A.d7(m,m,B.c1,m,m,m,m,m,l,m,m,19,m,m,B.ay,m,m,!0,m,m,m,m,m,m,m,m),m,m),b=n.d
-b===$&&A.a()
-b=A.bt("You finished all "+b.length+" puzzles",m,m,m,A.ci(B.a0,m,12,B.m),m,m)
-s=A.bt(A.Xp(n.at),m,m,m,A.d7(m,m,B.aN,m,m,m,m,m,l,m,m,36,m,m,B.ay,m,m,!0,m,m,m,m,m,m,m,m),m,m)
-r=A.bt("total time",m,m,m,A.ci(B.a0,m,11,B.m),m,m)
-q=B.dq.c5(0.5)
-p=A.c9(12)
-o=A.ft(B.bz)
-p=A.cA(m,A.eD(A.a55(n.d.length,new A.aki(n),!0,t.l7),B.an,B.a7),B.r,m,m,new A.bX(q,m,o,p,m,m,B.V),m,m,m,m,m,m,m)
-q=k!==1?"s":""
-o=n.gRm()
-return A.cA(m,A.j6(A.aeb(A.cA(m,A.eD(A.c([d,B.z8,c,B.P8,b,B.fk,s,r,B.fk,p,B.ib,A.bt(""+k+" hint"+q+" used total",m,m,m,A.ci(B.a0,m,11,B.m),m,m),B.fk,A.f3(A.afh(A.bt("See Leaderboard",m,m,m,A.ci(B.k,m,13,B.bo),m,m),o,m),m,1/0),B.zb,A.f3(A.afh(A.bt("Sign Out",m,m,m,A.ci(B.cJ,m,13,B.bo),m,m),o,m),m,1/0)],t.p),B.an,B.aV),B.r,m,B.AX,new A.bX(B.bK,m,f,g,e,m,B.V),m,m,B.h3,B.np,m,m,m),m,m),m,m),B.r,h,m,m,m,m,m,m,m,m,m)},
+a42(){var s=this,r=null,q="monospace",p=B.b.qb(s.db,0,new A.akh()),o=B.b.gP(s.a.e.split(" ")),n=B.b.p(s.dy,!0),m=B.dq.c5(0.9),l=A.c9(24),k=A.ft(B.bz),j=A.c([new A.da(0,B.cm,B.l.c5(0.6),B.f,80)],t.sq),i=A.bt(n?"\ud83c\udfc1":"\ud83c\udf89",r,r,r,B.Sv,r,r),h=A.bt("All Done, "+o+"!",r,r,r,A.d7(r,r,B.c1,r,r,r,r,r,q,r,r,19,r,r,B.ay,r,r,!0,r,r,r,r,r,r,r,r),r,r),g=A.bt("You finished the puzzle",r,r,r,A.ci(B.a0,r,12,B.m),r,r),f=A.bt(A.Xp(s.at),r,r,r,A.d7(r,r,B.aN,r,r,r,r,r,q,r,r,36,r,r,B.ay,r,r,!0,r,r,r,r,r,r,r,r),r,r),e=A.bt("total time",r,r,r,A.ci(B.a0,r,11,B.m),r,r),d=B.dq.c5(0.5),c=A.c9(12),b=A.ft(B.bz),a=s.d
+a===$&&A.a()
+c=A.cA(r,A.eD(A.a55(a.length,new A.aki(s),!0,t.l7),B.an,B.a7),B.r,r,r,new A.bX(d,r,b,c,r,r,B.V),r,r,r,r,r,r,r)
+d=p!==1?"s":""
+b=s.gRm()
+return A.cA(r,A.j6(A.aeb(A.cA(r,A.eD(A.c([i,B.z8,h,B.P8,g,B.fk,f,e,B.fk,c,B.ib,A.bt(""+p+" hint"+d+" used total",r,r,r,A.ci(B.a0,r,11,B.m),r,r),B.fk,A.f3(A.afh(A.bt("See Leaderboard",r,r,r,A.ci(B.k,r,13,B.bo),r,r),b,r),r,1/0),B.zb,A.f3(A.afh(A.bt("Sign Out",r,r,r,A.ci(B.cJ,r,13,B.bo),r,r),b,r),r,1/0)],t.p),B.an,B.aV),B.r,r,B.AX,new A.bX(B.bK,r,k,l,j,r,B.V),r,r,B.h3,B.np,r,r,r),r,r),r,r),B.r,m,r,r,r,r,r,r,r,r,r)},
 PA(a,b,c){var s=null
 return A.eD(A.c([A.bt(a,s,s,s,A.ci(c,s,15,B.ay),s,s),B.P6,A.bt(b,s,s,s,A.ci(B.a0,0.8,10,B.m),s,s)],t.p),B.an,B.a7)},
 a4a(a){var s=J.nt(a,this.ga4b(),t.l7)
