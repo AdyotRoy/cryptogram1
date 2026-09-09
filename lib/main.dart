@@ -966,14 +966,14 @@ class _GameScreenState extends State<GameScreen> {
     try {
       final totalHints = _hintsUsedPerPuzzle.fold<int>(0, (sum, h) => sum + h);
       final totalSkipped = _puzzleWasSkipped.where((skipped) => skipped).length;
+      final rawPoints = 1000 - _timeElapsed - (100 * totalHints);
+      final points = rawPoints < 0 ? 0 : rawPoints;
 
-      // Note: Make sure 'game_id' exactly matches the first column in your table
       await supabase.from('game_sessions').insert({
-        'game_id': widget.userId,
         'full_name': widget.fullName,
         'time_taken': _timeElapsed,
         'hints_used': totalHints,
-        'points': 0,
+        'points': points,
         'puzzles_skipped': totalSkipped,
       });
 
@@ -986,7 +986,6 @@ class _GameScreenState extends State<GameScreen> {
         );
       }
     } catch (e) {
-      // If Supabase rejects the insert, this will show you exactly why on-screen
       debugPrint('Database Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1160,6 +1159,8 @@ class _GameScreenState extends State<GameScreen> {
 
 
   void _signOut() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+
+  void _seeLeaderboard() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
 
   // ─── Build ────────────────────────────────────────────────────────────────
 
@@ -1633,7 +1634,7 @@ class _GameScreenState extends State<GameScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: _signOut,
+                    onPressed: _seeLeaderboard,
                     child: Text('See Leaderboard', style: AppText.sans(size: 13, weight: FontWeight.w600, color: Colors.white)),
                   ),
                 ),
@@ -1783,24 +1784,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Future<void> _fetchLeaderboard() async {
     try {
       final data = await supabase
-          .from('leaderboard')
-          .select('full_name, points, total_time_seconds, total_hints_used, skipped, user_id')
-          .order('skipped', ascending: true)
-          .order('points', ascending: false)
+          .from('calculated_leaderboard')
+          .select('full_name, time_taken, hints_used, puzzles_skipped, points, rank')
+          .order('rank', ascending: true)
           .limit(50);
 
-      final streaks = await supabase
-          .from('user_streaks')
-          .select('user_id, current_streak');
+      final accounts = await supabase
+          .from('user_accounts')
+          .select('full_name, streak');
 
-      final streakMap = {
-        for (final s in streaks) s['user_id']: s['current_streak'] as int,
-      };
+      final streakMap = <String, int>{};
+      for (final a in accounts) {
+        streakMap[a['full_name'] as String] = a['streak'] as int? ?? 1;
+      }
 
       if (!mounted) return;
       setState(() {
         _entries = List<Map<String, dynamic>>.from(data).map((e) {
-          e['streak'] = streakMap[e['user_id']] ?? 1;
+          e['streak'] = streakMap[e['full_name']] ?? 1;
           return e;
         }).toList();
         _loading = false;
@@ -1838,7 +1839,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     child: Text(
                       'LEADERBOARD',
                       textAlign: TextAlign.center,
-                      style: AppText.mono(size: 13, weight: FontWeight.w700, letterSpacing: 3, color: AppColors.text),
+                      style: AppText.mono(size: 15, weight: FontWeight.w700, letterSpacing: 3, color: AppColors.text),
                     ),
                   ),
                   const SizedBox(width: 48),
@@ -1857,21 +1858,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     const SizedBox(width: 28),
                     Expanded(
                       flex: 3,
-                      child: Text('NAME', style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('NAME', style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                     Expanded(
                       flex: 2,
-                      child: Text('TIME', textAlign: TextAlign.center, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('TIME', textAlign: TextAlign.center, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                     Expanded(
-                      child: Text('HINTS', textAlign: TextAlign.center, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('HINTS', textAlign: TextAlign.center, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                     Expanded(
-                      child: Text('STREAK', textAlign: TextAlign.center, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('STREAK', textAlign: TextAlign.center, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                     SizedBox(
                       width: 56,
-                      child: Text('PTS', textAlign: TextAlign.right, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('PTS', textAlign: TextAlign.right, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                   ],
                 ),
@@ -1895,8 +1896,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, i) {
                   final entry = _entries[i];
-                  final rank = i + 1;
-                  final skipped = entry['skipped'] == true;
+                  final rank = entry['rank'] ?? (i + 1);
+                  final skippedCount = (entry['puzzles_skipped'] as int?) ?? 0;
+                  final skipped = skippedCount > 0;
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
@@ -1932,12 +1934,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(formatTime(entry['total_time_seconds'] ?? 0),
+                          child: Text(formatTime(entry['time_taken'] ?? 0),
                               textAlign: TextAlign.center,
                               style: AppText.mono(size: 12, color: AppColors.sub)),
                         ),
                         Expanded(
-                          child: Text('${entry['total_hints_used'] ?? 0}',
+                          child: Text('${entry['hints_used'] ?? 0}',
                               textAlign: TextAlign.center,
                               style: AppText.mono(size: 12, color: AppColors.sub)),
                         ),
@@ -1966,7 +1968,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 }
-
 
 
 // ─── Timer badge ──────────────────────────────────────────────────────────────
