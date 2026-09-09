@@ -1872,7 +1872,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                     SizedBox(
                       width: 56,
-                      child: Text('PTS', textAlign: TextAlign.right, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('Points', textAlign: TextAlign.right, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                   ],
                 ),

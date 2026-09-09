@@ -43556,7 +43556,7 @@ case 6:case 1:return A.I(q,r)
 case 2:return A.H(o.at(-1),r)}})
 return A.J($async$te,r)},
 K(a){var s=this,r=null,q=t.p,p=A.c([A.cp(r,A.dw(A.c([A.avB(r,r,r,B.FO,r,r,new A.ang(a),r,r,r,r),A.f3(A.aZ("LEADERBOARD",r,r,r,A.cD(r,r,B.b5,r,r,r,r,r,"monospace",r,r,15,r,r,B.a1,r,r,!0,r,3,r,r,r,r,r,r),B.bb,r),1),B.Pe],q),B.ah,B.X),B.r,r,r,B.mk,r,54,r,B.nx,r,r,r)],q)
-if(!s.e&&s.f==null&&s.d.length!==0)p.push(A.cp(r,A.dw(A.c([B.Pd,A.f3(A.aZ("NAME",r,r,r,A.bG(B.H,1,12,B.a1),r,r),3),A.f3(A.aZ("TIME",r,r,r,A.bG(B.H,1,12,B.a1),B.bb,r),2),A.f3(A.aZ("HINTS",r,r,r,A.bG(B.H,1,12,B.a1),B.bb,r),1),A.f3(A.aZ("STREAK",r,r,r,A.bG(B.H,1,12,B.a1),B.bb,r),1),A.ei(A.aZ("PTS",r,r,r,A.bG(B.H,1,12,B.a1),B.cx,r),r,56)],q),B.ah,B.X),B.r,r,r,B.mk,r,r,r,B.EW,r,r,r))
+if(!s.e&&s.f==null&&s.d.length!==0)p.push(A.cp(r,A.dw(A.c([B.Pd,A.f3(A.aZ("NAME",r,r,r,A.bG(B.H,1,12,B.a1),r,r),3),A.f3(A.aZ("TIME",r,r,r,A.bG(B.H,1,12,B.a1),B.bb,r),2),A.f3(A.aZ("HINTS",r,r,r,A.bG(B.H,1,12,B.a1),B.bb,r),1),A.f3(A.aZ("STREAK",r,r,r,A.bG(B.H,1,12,B.a1),B.bb,r),1),A.ei(A.aZ("Points",r,r,r,A.bG(B.H,1,12,B.a1),B.cx,r),r,56)],q),B.ah,B.X),B.r,r,r,B.mk,r,r,r,B.EW,r,r,r))
 if(s.e)q=B.Cu
 else{q=s.f
 if(q!=null)q=A.hI(A.aZ("Could not load leaderboard: "+q,r,r,r,A.bG(B.bM,r,12,B.l),r,r),r,r)
