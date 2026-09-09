@@ -1759,6 +1759,216 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
+
+// ─── LeaderboardScreen ─────────────────────────────────────────────────────
+
+class LeaderboardScreen extends StatefulWidget {
+  const LeaderboardScreen({super.key});
+
+  @override
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
+  List<Map<String, dynamic>> _entries = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLeaderboard();
+  }
+
+  Future<void> _fetchLeaderboard() async {
+    try {
+      final data = await supabase
+          .from('leaderboard')
+          .select('full_name, points, total_time_seconds, total_hints_used, skipped, user_id')
+          .order('skipped', ascending: true)
+          .order('points', ascending: false)
+          .limit(50);
+
+      final streaks = await supabase
+          .from('user_streaks')
+          .select('user_id, current_streak');
+
+      final streakMap = {
+        for (final s in streaks) s['user_id']: s['current_streak'] as int,
+      };
+
+      if (!mounted) return;
+      setState(() {
+        _entries = List<Map<String, dynamic>>.from(data).map((e) {
+          e['streak'] = streakMap[e['user_id']] ?? 1;
+          return e;
+        }).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '$e';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: const BoxDecoration(
+                color: AppColors.header,
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.muted),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'LEADERBOARD',
+                      textAlign: TextAlign.center,
+                      style: AppText.mono(size: 13, weight: FontWeight.w700, letterSpacing: 3, color: AppColors.text),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+            ),
+            if (!_loading && _error == null && _entries.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: AppColors.header,
+                  border: Border(bottom: BorderSide(color: AppColors.border)),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 28),
+                    Expanded(
+                      flex: 3,
+                      child: Text('NAME', style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('TIME', textAlign: TextAlign.center, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                    ),
+                    Expanded(
+                      child: Text('HINTS', textAlign: TextAlign.center, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                    ),
+                    Expanded(
+                      child: Text('STREAK', textAlign: TextAlign.center, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                    ),
+                    SizedBox(
+                      width: 56,
+                      child: Text('PTS', textAlign: TextAlign.right, style: AppText.sans(size: 10, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  : _error != null
+                  ? Center(
+                child: Text('Could not load leaderboard: $_error',
+                    style: AppText.sans(size: 12, color: AppColors.red)),
+              )
+                  : _entries.isEmpty
+                  ? Center(
+                child: Text('No results yet — be the first!',
+                    style: AppText.sans(size: 13, color: AppColors.muted)),
+              )
+                  : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _entries.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, i) {
+                  final entry = _entries[i];
+                  final rank = i + 1;
+                  final skipped = entry['skipped'] == true;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: skipped ? AppColors.red : AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 28,
+                          child: Text('#$rank',
+                              style: AppText.mono(
+                                  size: 13,
+                                  weight: FontWeight.w700,
+                                  color: rank <= 3 && !skipped ? AppColors.amber : AppColors.muted)),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(entry['full_name'] ?? 'Anonymous',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
+                              ),
+                              if (skipped) ...[
+                                const SizedBox(width: 6),
+                                Icon(Icons.skip_next_rounded, size: 13, color: AppColors.red),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(formatTime(entry['total_time_seconds'] ?? 0),
+                              textAlign: TextAlign.center,
+                              style: AppText.mono(size: 12, color: AppColors.sub)),
+                        ),
+                        Expanded(
+                          child: Text('${entry['total_hints_used'] ?? 0}',
+                              textAlign: TextAlign.center,
+                              style: AppText.mono(size: 12, color: AppColors.sub)),
+                        ),
+                        Expanded(
+                          child: Text(
+                            (entry['streak'] ?? 1) > 1 ? '🔥${entry['streak']}' : '—',
+                            textAlign: TextAlign.center,
+                            style: AppText.sans(size: 12, color: (entry['streak'] ?? 1) > 1 ? AppColors.amber : AppColors.muted),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 56,
+                          child: Text('${entry['points'] ?? 0}',
+                              textAlign: TextAlign.right,
+                              style: AppText.mono(size: 13, weight: FontWeight.w700, color: skipped ? AppColors.muted : AppColors.amber)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
 // ─── Timer badge ──────────────────────────────────────────────────────────────
 
 class _TimerBadge extends StatelessWidget {
