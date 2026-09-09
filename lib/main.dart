@@ -685,7 +685,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
                 : ElevatedButton(
               onPressed: _submit,
-              child: const Text("Today's Puzzles →"),
+              child: const Text("Today's Puzzle →"),
             ),
           ),
         ],
