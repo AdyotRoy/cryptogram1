@@ -1872,7 +1872,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                     SizedBox(
                       width: 56,
-                      child: Text('Points', textAlign: TextAlign.right, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('POINTS', textAlign: TextAlign.right, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                   ],
                 ),
@@ -1923,7 +1923,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               Flexible(
                                 child: Text(entry['full_name'] ?? 'Anonymous',
                                     overflow: TextOverflow.ellipsis,
-                                    style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
+                                    style: AppText.sans(size: 15, weight: FontWeight.w600, color: AppColors.text)),
                               ),
                               if (skipped) ...[
                                 const SizedBox(width: 6),
@@ -1936,18 +1936,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           flex: 2,
                           child: Text(formatTime(entry['time_taken'] ?? 0),
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 12, color: AppColors.sub)),
+                              style: AppText.mono(size: 14, color: AppColors.sub)),
                         ),
                         Expanded(
                           child: Text('${entry['hints_used'] ?? 0}',
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 12, color: AppColors.sub)),
+                              style: AppText.mono(size: 14, color: AppColors.sub)),
                         ),
                         Expanded(
                           child: Text(
-                            (entry['streak'] ?? 1) > 1 ? '🔥${entry['streak']}' : '—',
+                            (entry['streak'] ?? 1) == 1 ? '🔥1' : '🔥${entry['streak']}',
                             textAlign: TextAlign.center,
-                            style: AppText.sans(size: 12, color: (entry['streak'] ?? 1) > 1 ? AppColors.amber : AppColors.muted),
+                            style: AppText.sans(size: 14, color: (entry['streak'] ?? 1) > 1 ? AppColors.amber : AppColors.muted),
                           ),
                         ),
                         SizedBox(
