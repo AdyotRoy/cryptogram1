@@ -1,31 +1,3 @@
-// lib/main.dart
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// Daily Cryptogram — merged single-file build (v2)
-//
-//   • CryptogramEngine        (unchanged — from lib/models/cryptogram_engine.dart)
-//   • MockSentenceService     (unchanged — from lib/services/mock_sentence_service.dart)
-//   • LoginScreen             (from "Quiz app design with timer" — full name / email /
-//                              password form, validated, hands off to GameScreen)
-//   • GameScreen              (from "Quiz app design with timer" — dark theme,
-//                              tap-to-select cipher grid, on-screen keyboard,
-//                              hint/check/skip pills, pause overlay, timer badges,
-//                              per-puzzle progress dots, solved/all-done summaries)
-//
-// Changes from v1, per feedback:
-//   1. Login/register screen restored ahead of the puzzle screen.
-//   2. Only 3 puzzles are played per session (dailySentences is capped with
-//      .take(3) — MockSentenceService itself is untouched, still returns 5).
-//   3. Added a "Skip" control to move past a puzzle without solving it.
-//   4. Each puzzle now tracks and displays its OWN elapsed time (header timer
-//      badge + solved-overlay stat + final summary breakdown), in addition to
-//      the running session total.
-//
-// Puzzle-solving behavior and the visual design are preserved. The fixes below
-// repair initialization, state/lifecycle handling, daily seeding, and Supabase
-// response handling without changing the UI structure.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
@@ -35,28 +7,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 const String _supabaseUrl =
     'https://pnczxyjpydrdochlzclt.supabase.co';
-
-// IMPORTANT: Replace this with the actual Supabase project's anon/public key.
-// The value that was in the supplied file is not a valid Supabase JWT.
 const String _supabaseAnonKey = 'sb_publishable_yXDnqcTlrGGb8BppNP-6vw_rONAlZuO';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Supabase without throwing before runApp().
-  // This keeps the existing Supabase URL/key and database connection exactly
-  // as configured, while allowing the Flutter Web UI to render even when
-  // Supabase initialization cannot complete. Database actions will still use
-  // the same Supabase client once initialization succeeds.
   try {
     await Supabase.initialize(
       url: _supabaseUrl,
       anonKey: _supabaseAnonKey,
     );
   } catch (_) {
-    // Do not prevent the UI from loading because of an initialization/network
-    // failure. The existing login/database error handling will report failures
-    // when the user actually attempts a Supabase operation.
   }
 
   runApp(const CryptogramApp());
@@ -806,6 +766,10 @@ class _GameScreenState extends State<GameScreen> {
   int _puzzleTimeElapsed = 0;
   bool _paused = false;
 
+  // Current daily streak, loaded from user_accounts and refreshed after each
+  // session is submitted (the DB trigger on game_sessions keeps it in sync).
+  int? _currentStreak;
+
 
   Timer? _timer;
   bool _sessionComplete = false;
@@ -825,6 +789,29 @@ class _GameScreenState extends State<GameScreen> {
     dailySentences = MockSentenceService.getDailyPuzzles().take(1).toList();
     _loadPuzzle(_puzzleIndex);
     _startTimer();
+    unawaited(_fetchStreak());
+  }
+
+  /// Loads the current streak for this user from user_accounts.
+  /// Called on entry and again after a session is submitted, since the
+  /// `update_streak_on_solve` trigger keeps user_accounts.streak in sync
+  /// whenever a game_sessions row is inserted with a matching user_id.
+  Future<void> _fetchStreak() async {
+    final id = int.tryParse(widget.userId);
+    if (id == null) return;
+
+    try {
+      final row = await supabase
+          .from('user_accounts')
+          .select('streak')
+          .eq('user_id', id)
+          .maybeSingle();
+
+      if (!mounted || row == null) return;
+      setState(() => _currentStreak = row['streak'] as int? ?? 0);
+    } catch (e) {
+      debugPrint('Streak fetch error: $e');
+    }
   }
 
   @override
@@ -969,13 +956,25 @@ class _GameScreenState extends State<GameScreen> {
       final rawPoints = 1000 - _timeElapsed - (100 * totalHints);
       final points = rawPoints < 0 ? 0 : rawPoints;
 
+      // user_id is what links this session back to user_accounts so the
+      // streak trigger can find and update the right row.
+      final userIdInt = int.tryParse(widget.userId);
+      if (userIdInt == null) {
+        debugPrint('Warning: could not parse userId "${widget.userId}" — '
+            'session will be saved without a user_id, so streak will not update.');
+      }
+
       await supabase.from('game_sessions').insert({
+        if (userIdInt != null) 'user_id': userIdInt,
         'full_name': widget.fullName,
         'time_taken': _timeElapsed,
         'hints_used': totalHints,
         'points': points,
         'puzzles_skipped': totalSkipped,
       });
+
+      // Pull the freshly-updated streak so the summary screen shows it.
+      await _fetchStreak();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1230,6 +1229,10 @@ class _GameScreenState extends State<GameScreen> {
                   style: AppText.mono(size: 13, weight: FontWeight.w700, letterSpacing: 3, color: AppColors.text),
                 ),
               ),
+              if (_currentStreak != null) ...[
+                _StreakBadge(streak: _currentStreak!),
+                const SizedBox(width: 8),
+              ],
               _MenuButton(
                 fullName: widget.fullName,
                 username: widget.username,
@@ -1570,6 +1573,12 @@ class _GameScreenState extends State<GameScreen> {
                 Text('All Done, $firstName!', style: AppText.mono(size: 19, weight: FontWeight.w700, color: AppColors.green)),
                 const SizedBox(height: 4),
                 Text('You finished the puzzle', style: AppText.sans(size: 12, color: AppColors.muted)),
+
+                if (_currentStreak != null) ...[
+                  const SizedBox(height: 12),
+                  _StreakBadge(streak: _currentStreak!, large: true),
+                ],
+
                 const SizedBox(height: 20),
 
                 Text(formatTime(_timeElapsed), style: AppText.mono(size: 36, weight: FontWeight.w700, color: AppColors.amber)),
@@ -1785,25 +1794,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     try {
       final data = await supabase
           .from('calculated_leaderboard')
-          .select('full_name, time_taken, hints_used, puzzles_skipped, points, rank')
+          .select('full_name, time_taken, hints_used, puzzles_skipped, points, streak, rank')
           .order('rank', ascending: true)
           .limit(50);
 
-      final accounts = await supabase
-          .from('user_accounts')
-          .select('full_name, streak');
-
-      final streakMap = <String, int>{};
-      for (final a in accounts) {
-        streakMap[a['full_name'] as String] = a['streak'] as int? ?? 1;
-      }
-
       if (!mounted) return;
       setState(() {
-        _entries = List<Map<String, dynamic>>.from(data).map((e) {
-          e['streak'] = streakMap[e['full_name']] ?? 1;
-          return e;
-        }).toList();
+        _entries = List<Map<String, dynamic>>.from(data);
         _loading = false;
       });
     } catch (e) {
@@ -1899,6 +1896,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   final rank = entry['rank'] ?? (i + 1);
                   final skippedCount = (entry['puzzles_skipped'] as int?) ?? 0;
                   final skipped = skippedCount > 0;
+
+                  final Color rankColor;
+                  if (rank == 1) {
+                    rankColor = AppColors.amber;
+                  } else if (rank == 2) {
+                    rankColor = Colors.grey;
+                  } else if (rank == 3) {
+                    rankColor = const Color(0xFFCD7F32);
+                  } else {
+                    rankColor = Colors.white;
+                  }
+
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
@@ -1914,7 +1923,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               style: AppText.mono(
                                   size: 13,
                                   weight: FontWeight.w700,
-                                  color: rank <= 3 && !skipped ? AppColors.amber : AppColors.muted)),
+                                  color: skipped ? AppColors.muted : rankColor)),
                         ),
                         Expanded(
                           flex: 3,
@@ -1923,7 +1932,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               Flexible(
                                 child: Text(entry['full_name'] ?? 'Anonymous',
                                     overflow: TextOverflow.ellipsis,
-                                    style: AppText.sans(size: 15, weight: FontWeight.w600, color: AppColors.text)),
+                                    style: AppText.sans(size: 14, color: skipped ? AppColors.sub : rankColor)),
                               ),
                               if (skipped) ...[
                                 const SizedBox(width: 6),
@@ -1936,25 +1945,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           flex: 2,
                           child: Text(formatTime(entry['time_taken'] ?? 0),
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 14, color: AppColors.sub)),
+                              style: AppText.mono(size: 14, color: skipped ? AppColors.sub : rankColor)),
                         ),
                         Expanded(
                           child: Text('${entry['hints_used'] ?? 0}',
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 14, color: AppColors.sub)),
+                              style: AppText.mono(size: 14, color: skipped ? AppColors.sub : rankColor)),
                         ),
                         Expanded(
                           child: Text(
                             (entry['streak'] ?? 1) == 1 ? '🔥1' : '🔥${entry['streak']}',
                             textAlign: TextAlign.center,
-                            style: AppText.sans(size: 14, color: (entry['streak'] ?? 1) > 1 ? AppColors.amber : AppColors.muted),
+                            style: AppText.sans(size: 14, color: skipped ? AppColors.muted : rankColor),
                           ),
                         ),
                         SizedBox(
                           width: 56,
                           child: Text('${entry['points'] ?? 0}',
                               textAlign: TextAlign.right,
-                              style: AppText.mono(size: 13, weight: FontWeight.w700, color: skipped ? AppColors.muted : AppColors.amber)),
+                              style: AppText.mono(size: 13, weight: FontWeight.w700, color: skipped ? AppColors.muted : rankColor)),
                         ),
                       ],
                     ),
@@ -1969,6 +1978,35 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 }
 
+
+// ─── Streak badge ─────────────────────────────────────────────────────────────
+
+class _StreakBadge extends StatelessWidget {
+  final int streak;
+  final bool large;
+  const _StreakBadge({required this.streak, this.large = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = streak == 1 ? '1 day streak' : '$streak day streak';
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: large ? 14 : 9, vertical: large ? 8 : 5),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(large ? 14 : 22),
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.2)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text('🔥', style: TextStyle(fontSize: large ? 14 : 12)),
+        SizedBox(width: large ? 6 : 3),
+        Text(
+          large ? label : '$streak',
+          style: AppText.mono(size: large ? 13 : 13, weight: FontWeight.w700, color: AppColors.amber),
+        ),
+      ]),
+    );
+  }
+}
 
 // ─── Timer badge ──────────────────────────────────────────────────────────────
 
