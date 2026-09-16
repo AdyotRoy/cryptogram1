@@ -339,7 +339,12 @@ String _todayLabel() {
     'January', 'February', 'March', 'April', 'May', 'June', 'July',
     'August', 'September', 'October', 'November', 'December',
   ];
-  final now = DateTime.now();
+
+  final now = DateTime.now().toUtc();
+  final today =
+      '${now.year.toString().padLeft(4, '0')}-'
+      '${now.month.toString().padLeft(2, '0')}-'
+      '${now.day.toString().padLeft(2, '0')}';
   return '${months[now.month - 1]} ${now.day}, ${now.year}';
 }
 
@@ -352,29 +357,67 @@ const _kbdRows = [
 
 String _friendlySupabaseError(Object error) {
   final message = error.toString().replaceFirst('Exception: ', '').trim();
+  final lower = message.toLowerCase();
 
   if (message.isEmpty) {
     return 'Something went wrong. Please try again.';
   }
 
-  if (message.toLowerCase().contains('failed to fetch') ||
-      message.toLowerCase().contains('network')) {
+  if (lower.contains('failed to fetch') || lower.contains('network')) {
     return 'Could not connect to Supabase. Check your internet connection and Supabase URL/key.';
   }
 
-  if (message.toLowerCase().contains('invalid login') ||
-      message.toLowerCase().contains('invalid password') ||
-      message.toLowerCase().contains('wrong password')) {
+  if (lower.contains('come back tomorrow')) {
+    return "You've already played today's puzzle. Come back tomorrow for a new one!";
+  }
+
+
+  if (lower.contains('invalid email or password') ||
+      lower.contains('invalid login') ||
+      lower.contains('invalid password') ||
+      lower.contains('wrong password')) {
     return 'Incorrect email or password.';
   }
 
-  if (message.toLowerCase().contains('already exists') ||
-      message.toLowerCase().contains('duplicate key') ||
-      message.toLowerCase().contains('already registered')) {
+  if (lower.contains('already exists') ||
+      lower.contains('duplicate key') ||
+      lower.contains('already registered')) {
     return 'An account with this email already exists.';
   }
 
   return message;
+}
+
+/// True when Supabase has rejected this account because it already used
+/// today's puzzle.
+bool _isDailyPlayBlocked(Object error) {
+  return error.toString().toLowerCase().contains('come back tomorrow');
+}
+
+/// Atomically claims today's puzzle for this account.
+///
+/// The update only succeeds when last_active_date is NULL or is a date
+/// before today. This means signing out and signing back in cannot be used
+/// to play the daily cryptogram a second time.
+Future<void> _claimDailyPuzzle(String userId) async {
+  final id = int.tryParse(userId);
+
+  if (id == null) {
+    throw StateError('Supabase returned an invalid user id.');
+  }
+
+  final result = await supabase.rpc(
+    'claim_daily_puzzle',
+    params: {
+      'p_user_id': id,
+    },
+  );
+
+  if (result != true) {
+    throw StateError(
+      "You've already played today's puzzle. Come back tomorrow for a new one!",
+    );
+  }
 }
 
 // ─── LoginScreen (from "Quiz app design with timer") ──────────────────────────
@@ -442,25 +485,58 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       dynamic result;
 
-      // First try to log the user in.
+      // Try to log in with the given credentials first.
+      Future<dynamic> tryLogin() => supabase.rpc(
+        'login_user',
+        params: {
+          'p_email': email,
+          'p_password': password,
+        },
+      );
+
       try {
-        result = await supabase.rpc(
-          'login_user',
-          params: {
-            'p_email': email,
-            'p_password': password,
-          },
-        );
-      } catch (_) {
-        // If login fails, try creating a new account.
-        result = await supabase.rpc(
-          'register_user',
-          params: {
-            'p_full_name': fullName,
-            'p_email': email,
-            'p_password': password,
-          },
-        );
+        result = await tryLogin();
+      } catch (loginError) {
+        // A daily-play block is a real application error, not a missing account.
+        // Do NOT fall through to register_user in this case.
+        if (_isDailyPlayBlocked(loginError)) {
+          rethrow;
+        }
+
+        // No matching account yet (or a transient hiccup) — try creating one.
+        try {
+          result = await supabase.rpc(
+            'register_user',
+            params: {
+              'p_full_name': fullName,
+              'p_email': email,
+              'p_password': password,
+            },
+          );
+        } catch (registerError) {
+          // Keep the daily-play block intact even if registration also errors.
+          if (_isDailyPlayBlocked(registerError)) {
+            rethrow;
+          }
+
+          final msg = registerError.toString().toLowerCase();
+          final accountAlreadyExists = msg.contains('duplicate key') ||
+              msg.contains('already exists') ||
+              msg.contains('already registered');
+
+          if (accountAlreadyExists) {
+            // Registration failing this way *proves* the account is real —
+            // the first login attempt just didn't go through (e.g. a
+            // dropped request). Retry login instead of showing a confusing
+            // "already exists" error to someone who's simply logging back
+            // in with the right credentials. If the password is actually
+            // wrong, this second attempt fails too and surfaces that
+            // correctly below.
+            result = await tryLogin();
+          } else {
+            rethrow;
+          }
+        }
       }
 
       final Map<String, dynamic> userData;
@@ -476,12 +552,26 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
-      final rawUserId = userData['id'];
+      // The database uses public.user_accounts.user_id (bigint).
+      // Accept user_id first, with id kept as a compatibility fallback.
+      final rawUserId = userData['user_id'] ?? userData['id'];
       if (rawUserId == null) {
         throw StateError('Supabase did not return a user id.');
       }
 
       final userId = rawUserId.toString();
+      if (int.tryParse(userId) == null) {
+        throw StateError(
+          'Supabase returned a non-numeric user id. '
+              'login_user/register_user must return user_accounts.user_id.',
+        );
+      }
+
+      // Claim the daily puzzle before opening GameScreen.
+      // If this account already played today, this throws the exact
+      // "come back tomorrow" error and the game is never opened.
+      await _claimDailyPuzzle(userId);
+
       final storedFullName =
       (userData['full_name'] ?? fullName).toString();
 
