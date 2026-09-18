@@ -1879,7 +1879,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     super.initState();
     _fetchLeaderboard();
   }
-
+  void _signOut() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
   Future<void> _fetchLeaderboard() async {
     try {
       final data = await supabase
@@ -1920,7 +1920,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back_rounded, color: AppColors.muted),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => _signOut() ,
                   ),
                   Expanded(
                     child: Text(
@@ -1944,7 +1944,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   children: [
                     const SizedBox(width: 28),
                     Expanded(
-                      flex: 3,
+                      flex: 2,
                       child: Text('NAME', style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
                     ),
                     Expanded(
@@ -1991,11 +1991,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   if (rank == 1) {
                     rankColor = AppColors.amber;
                   } else if (rank == 2) {
-                    rankColor = Colors.grey;
+                    rankColor = const Color(0xFFD6D6D6);
                   } else if (rank == 3) {
                     rankColor = const Color(0xFFCD7F32);
                   } else {
                     rankColor = Colors.white;
+                  }
+
+                  final beforeRank;
+                  if(rank==1){
+
                   }
 
                   return Container(
@@ -2003,7 +2008,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: skipped ? AppColors.red : AppColors.border),
+                      border: Border.all(color: skipped ? AppColors.border : AppColors.border),
                     ),
                     child: Row(
                       children: [
@@ -2013,16 +2018,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               style: AppText.mono(
                                   size: 13,
                                   weight: FontWeight.w700,
-                                  color: skipped ? AppColors.muted : rankColor)),
+                                  color: skipped ? AppColors.red : rankColor)),
                         ),
                         Expanded(
-                          flex: 3,
+                          flex: 2,
                           child: Row(
                             children: [
                               Flexible(
                                 child: Text(entry['full_name'] ?? 'Anonymous',
                                     overflow: TextOverflow.ellipsis,
-                                    style: AppText.sans(size: 14, color: skipped ? AppColors.sub : rankColor)),
+                                    style: AppText.sans(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
                               ),
                               if (skipped) ...[
                                 const SizedBox(width: 6),
@@ -2035,25 +2040,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           flex: 2,
                           child: Text(formatTime(entry['time_taken'] ?? 0),
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 14, color: skipped ? AppColors.sub : rankColor)),
+                              style: AppText.mono(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
                         ),
                         Expanded(
                           child: Text('${entry['hints_used'] ?? 0}',
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 14, color: skipped ? AppColors.sub : rankColor)),
+                              style: AppText.mono(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
                         ),
                         Expanded(
                           child: Text(
                             (entry['streak'] ?? 1) == 1 ? '🔥1' : '🔥${entry['streak']}',
                             textAlign: TextAlign.center,
-                            style: AppText.sans(size: 14, color: skipped ? AppColors.muted : rankColor),
+                            style: AppText.sans(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor),
                           ),
                         ),
                         SizedBox(
                           width: 56,
                           child: Text('${entry['points'] ?? 0}',
                               textAlign: TextAlign.right,
-                              style: AppText.mono(size: 13, weight: FontWeight.w700, color: skipped ? AppColors.muted : rankColor)),
+                              style: AppText.mono(size: 13, weight: FontWeight.w700, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
                         ),
                       ],
                     ),
