@@ -43351,17 +43351,17 @@ s=A.aW("CRYPTOGRAMS",p,p,p,A.cv(p,p,B.b7,p,p,p,p,p,"monospace",p,p,20,p,p,B.a0,p
 r=new A.dh(Date.now(),0,!1).atx()
 q=t.p
 return A.awG(p,A.n3(B.cn,A.c([o,n,A.ui(!0,A.hJ(A.afV(new A.f2(B.Bg,A.es(A.c([A.es(A.c([m,B.ii,s,B.zv,A.aW(" "+(B.Hn[A.abq(r)-1]+" "+A.abp(r)+", "+A.u3(r)),p,p,p,A.bH(B.M,p,11,B.l),p,p)],q),B.ak,B.X),B.PL,this.a5u(),B.zt],q),B.ak,B.X),p),p,B.h5),p,p),!0)],q),B.Z,B.cx))},
-a5u(){var s,r=this,q=null,p=A.c_(20),o=A.f_(B.bq),n=A.c([new A.df(0,B.cp,B.m.c1(0.45),B.Lm,60)],t.sq),m=A.axi(r.d,B.QP,"FULL NAME",!1,"Enter your full name",q,B.Qs),l=A.axi(r.e,B.zV,"EMAIL",!1,"Enter your email address",q,B.zP),k=r.x,j=t.p
+a5u(){var s,r=this,q=null,p=A.c_(20),o=A.f_(B.bq),n=A.c([new A.df(0,B.cp,B.m.c1(0.45),B.Lm,60)],t.sq),m=A.axi(r.d,B.QP,"FULL NAME",!1,"Enter your full name",q,B.Qs),l=A.axi(r.e,B.zV,"EMAIL",!1,"Enter your company email address",q,B.zP),k=r.x,j=t.p
 k=A.c([m,B.ii,l,B.ii,A.axi(r.f,B.QO,"PASSWORD",k,"Enter your password",A.aw9(q,q,q,A.oW(k?B.FQ:B.FR,B.M,q,18),q,q,new A.anX(r),q,q,q,q),B.zP)],j)
 if(r.r.length!==0){m=B.bO.c1(0.08)
 l=A.c_(9)
 s=A.f_(B.bO.c1(0.22))
 B.b.K(k,A.c([B.ii,A.ck(q,A.aW(r.r,q,q,q,A.bH(B.bO,q,12,B.l),q,q),B.r,q,q,new A.bR(m,q,s,l,q,q,B.P),q,q,q,B.F1,q,q,q)],j))}k.push(B.fn)
-k.push(A.dO(r.w?B.CD:A.avQ(B.V8,r.gahW(),q),50,q))
+k.push(A.dO(r.w?B.CD:A.avQ(B.V7,r.gahW(),q),50,q))
 k.push(B.lv)
 m=r.w?q:r.gaas()
 l=A.aBU(q,q,q,q,q,q,q,q,q,B.b7,q,q,q,q,new A.cu(A.c_(12),B.p),B.cq,q,q,q,q)
-k.push(A.dO(new A.A8(!0,m,q,q,q,l,q,q,!1,q,!0,q,new A.Tu(B.V5,B.G4,l,q,q),q),50,q))
+k.push(A.dO(new A.A8(!0,m,q,q,q,l,q,q,!1,q,!0,q,new A.Tu(B.V8,B.G4,l,q,q),q),50,q))
 return A.ck(q,A.es(k,B.eD,B.X),B.r,q,q,new A.bR(B.bC,q,o,p,n,q,B.P),q,q,q,B.h5,q,q,q)}}
 A.aob.prototype={
 $1(a){if(a.a===B.dl&&a.b!=null)this.a.nH()},
@@ -43379,7 +43379,7 @@ A.ao4.prototype={
 $0(){return this.a.r="Please enter your email address."},
 $S:0}
 A.ao5.prototype={
-$0(){return this.a.r="Please enter a valid email address."},
+$0(){return this.a.r="Please enter your company email address."},
 $S:0}
 A.ao6.prototype={
 $0(){return this.a.r="Password must be at least 4 characters."},
@@ -43458,7 +43458,7 @@ n.aQ()
 s=new A.dh(Date.now(),0,!1)
 r=new A.apN()
 r.a4z(A.u3(s)*1e4+A.abq(s)*100+A.abp(s))
-q=A.ei(B.HO,!0,t.N)
+q=A.ei(B.HM,!0,t.N)
 B.b.LI(q,r)
 p=t.S
 o=A.fS(q,0,A.nN(1,"count",p),A.W(q).c).er(0)
@@ -43725,7 +43725,7 @@ r=A.da(A.c([r,B.PC,k.QF(p,"Hints",q?B.c5:B.aq)],b),B.dK,B.X,0)
 p=B.a1.c1(0.07)
 o=A.c_(12)
 n=A.f_(B.a1.c1(0.2))
-h.push(A.Mp(0,A.ck(j,A.hJ(A.ck(j,A.es(A.c([B.V6,B.zs,c,B.zt,r,B.PJ,A.ck(j,A.da(A.c([B.G5,B.ih,A.f4(A.aW("Puzzle "+(k.e+2)+" unlocked",j,j,j,A.bH(B.a1,j,13,B.a0),j,j),1)],b),B.ab,B.X,0),B.r,j,j,new A.bR(p,j,n,o,j,j,B.P),j,j,j,B.nC,j,j,j),B.fn,A.dO(A.avQ(A.aW("Next Puzzle \u2192",j,j,j,A.bH(B.k,j,14,B.a0),j,j),k.gae2(),j),j,1/0)],b),B.ak,B.aL),B.r,j,B.Bd,new A.bR(B.bC,j,e,f,d,j,B.P),j,j,B.h5,B.nE,j,j,j),j,j),B.r,g,j,j,j,j,j,j,j,j,j)))}if(k.CW)h.push(A.Mp(0,k.a5s()))
+h.push(A.Mp(0,A.ck(j,A.hJ(A.ck(j,A.es(A.c([B.V5,B.zs,c,B.zt,r,B.PJ,A.ck(j,A.da(A.c([B.G5,B.ih,A.f4(A.aW("Puzzle "+(k.e+2)+" unlocked",j,j,j,A.bH(B.a1,j,13,B.a0),j,j),1)],b),B.ab,B.X,0),B.r,j,j,new A.bR(p,j,n,o,j,j,B.P),j,j,j,B.nC,j,j,j),B.fn,A.dO(A.avQ(A.aW("Next Puzzle \u2192",j,j,j,A.bH(B.k,j,14,B.a0),j,j),k.gae2(),j),j,1/0)],b),B.ak,B.aL),B.r,j,B.Bd,new A.bR(B.bC,j,e,f,d,j,B.P),j,j,B.h5,B.nE,j,j,j),j,j),B.r,g,j,j,j,j,j,j,j,j,j)))}if(k.CW)h.push(A.Mp(0,k.a5s()))
 return new A.L8(k.cy,!0,new A.amJ(k),A.awG(B.cO,A.n3(B.cn,h,B.Z,B.cx)),j)},
 a5y(){var s=this,r=null,q=t.p,p=A.c([new A.WA(s.at,s.ax,s.gaid(),r),A.f4(A.aW("DAILY CRYPTOGRAM",r,r,r,A.cv(r,r,B.b7,r,r,r,r,r,"monospace",r,r,13,r,r,B.a0,r,r,!0,r,3,r,r,r,r,r,r),B.bc,r),1)],q),o=s.ay
 if(o!=null)B.b.K(p,A.c([new A.G4(o,!1,r),B.zr],q))
@@ -82374,7 +82374,7 @@ g.p2=A.p(t.D2,q)
 p=g.p1
 s=s.c
 g.p1=A.p(s,q)
-for(o=0;o<11;++o){n=B.HM[o]
+for(o=0;o<11;++o){n=B.HN[o]
 m=f.akQ(n)
 l=m==null?null:m.a
 k=p.h(0,n)
@@ -92983,16 +92983,17 @@ B.IA=s([2.48660575,1.36351941],t.n)
 B.HB=s([2.62226596,1.44717976],t.n)
 B.HG=s([2.7514899,1.53385819],t.n)
 B.I8=s([3.36298265,1.98288283],t.n)
-B.HN=s([4.08649929,2.23811846],t.n)
+B.HO=s([4.08649929,2.23811846],t.n)
 B.I0=s([4.85481134,2.47563463],t.n)
 B.HE=s([5.62945551,2.72948597],t.n)
 B.HL=s([6.43023796,2.98020421],t.n)
-B.os=s([B.HK,B.GS,B.Iy,B.IA,B.HB,B.HG,B.I8,B.HN,B.I0,B.HE,B.HL],t.zg)
+B.os=s([B.HK,B.GS,B.Iy,B.IA,B.HB,B.HG,B.I8,B.HO,B.I0,B.HE,B.HL],t.zg)
 B.HA=s([B.j_,B.j0],A.ar("B<x0>"))
 B.HD=s([18,15,10,12,15,18,15,12,12],t.n)
 B.HH=s([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298],t.t)
 B.AN=new A.h6("",6,"userDeleted")
 B.ot=s([B.dk,B.eg,B.dl,B.dm,B.eh,B.mk,B.AN,B.mj],A.ar("B<h6>"))
+B.HM=s(["stay curious and keep learning","consistency brings great success","creativity is intelligence having fun","action is the key to all success","small steps every day lead to big results","never stop exploring new ideas","clarity comes from taking action","believe you can and you are halfway there","small steps forward still count as progress","every sunrise brings a brand new start","kindness costs nothing but means everything","focus on progress not on perfection","great things take time and patience","believe in yourself before anyone else","hard work always beats natural talent","stay humble stay hungry stay focused","difficult roads often lead to beautiful places","your only limit is your own mind","push yourself because no one else will","success starts with a single decision","dream big and dare to fail","change your thoughts and change your world","the best view comes after the climb","never give up on your goals","do what you can with what you have","wake up with determination sleep with satisfaction","good things come to those who hustle","turn your wounds into wisdom and strength","a little progress each day adds up","doubt kills more dreams than failure does","be stronger than your strongest excuse","learn from yesterday live for today","discipline is choosing what you want most","little by little a little becomes a lot","you are capable of amazing things","trust the process and stay consistent","fall seven times stand up eight","work hard in silence let success speak","positive mindset brings positive outcomes always","nothing worth having comes without effort","chase your dreams not your fears","every expert was once a beginner","keep going you are almost there","great minds discuss ideas not people","actions speak louder than empty words","life rewards those who take chances","stay patient and trust your journey","do more of what makes you happy","your attitude determines your altitude in life","the harder you work the luckier you get","progress not perfection is the goal","start where you are use what you have","courage is grace under real pressure","you miss every shot you never take","consistency beats intensity in the long run","dream it plan it and do it","growth begins at the end of comfort","choose progress over comfort every single day","practice does not make perfect practice makes permanent","be the energy you want to attract","small disciplines repeated daily create huge results","every accomplishment starts with the decision to try","stay focused and never lose sight of goals","hardships often prepare people for greater things","set goals crush them then set new ones","what you focus on tends to expand","motivation gets you started habit keeps you going","winners are not afraid of losing","simplicity is the ultimate form of sophistication","great work comes from great focus","confidence comes from preparation and practice","adaptability is key to long term success","be so good they cannot ignore you","growth is uncomfortable but always worth it","stay curious and never stop learning","champions train when nobody else is watching","every master was once a total disaster","success is a series of small wins","effort is never wasted even in failure","you cannot pour from an empty cup","do the work trust the outcome","the comeback is always stronger than the setback","one day or day one you decide","struggles today build strength for tomorrow","persistence turns failure into extraordinary achievement","great journeys begin with small brave steps","focus on being productive instead of busy","excellence is a habit not an act","better to try and fail than never try","real change happens outside comfort zones","speak less listen more learn faster","patience and persistence conquer almost everything","progress feels slow until suddenly it doesn't","never underestimate the power of consistency","take the risk or lose the chance","your future is created by what you do today","small wins build unstoppable long term momentum","stay grounded but keep reaching higher","discipline outlasts motivation every single time","choose growth even when it is hard","the only failure is giving up early","great things never came from comfort zones","keep learning keep growing keep going","every day is a second chance","do it scared but do it anyway","big journeys start with small commitments","stay grateful stay grounded stay driven","the best time to start is now"],t.s)
 B.aD=new A.eC(0,"icon")
 B.aT=new A.eC(1,"input")
 B.ad=new A.eC(2,"label")
@@ -93004,7 +93005,7 @@ B.aO=new A.eC(7,"suffixIcon")
 B.bI=new A.eC(8,"helperError")
 B.bJ=new A.eC(9,"counter")
 B.cD=new A.eC(10,"container")
-B.HM=s([B.aD,B.aT,B.ad,B.b1,B.b2,B.b3,B.a7,B.aO,B.bI,B.bJ,B.cD],A.ar("B<eC>"))
+B.HN=s([B.aD,B.aT,B.ad,B.b1,B.b2,B.b3,B.a7,B.aO,B.bI,B.bJ,B.cD],A.ar("B<eC>"))
 B.IV=new A.pc("en",null,"US")
 B.ou=s([B.IV],t.ss)
 B.ov=s([0,41,61,101,131,181,251,301,360],t.n)
@@ -93015,7 +93016,6 @@ B.X5=new A.lv(6,0.11)
 B.X3=new A.lv(8,0.12)
 B.X2=new A.lv(12,0.14)
 B.ow=s([B.X1,B.X6,B.X4,B.X5,B.X3,B.X2],A.ar("B<lv>"))
-B.HO=s(["action is the key to all success","small steps every day lead to big results","great things take time and patience","dream big and dare to fail","never give up on your goals"],t.s)
 B.ox=s([0,21,51,121,151,191,271,321,360],t.n)
 B.AX=new A.It(2,"outer")
 B.n1=new A.K(0.09803921568627451,0,0,0,B.i)
@@ -94422,8 +94422,8 @@ B.PG=new A.bY(20,null,B.V4,null)
 B.zq=new A.bY(6,null,null,null)
 B.zr=new A.bY(8,null,null,null)
 B.PH=new A.bY(1/0,1/0,null,null)
-B.V7=new A.i1("\u2192",null,B.zZ,null,null,null,null,null,null)
-B.PI=new A.bY(20,null,B.V7,null)
+B.V6=new A.i1("\u2192",null,B.zZ,null,null,null,null,null,null)
+B.PI=new A.bY(20,null,B.V6,null)
 B.zs=new A.bY(null,10,null,null)
 B.lv=new A.bY(null,12,null,null)
 B.ii=new A.bY(null,14,null,null)
@@ -94824,10 +94824,10 @@ B.TD=new A.o(!0,B.L,null,".AppleSystemUIFont",null,null,null,null,null,null,null
 B.TY=new A.o(!0,B.m,null,".AppleSystemUIFont",null,null,null,null,null,null,null,null,null,null,null,null,null,B.f,null,null,null,"blackRedwoodCity labelMedium",null,null,null,null)
 B.R7=new A.o(!0,B.m,null,".AppleSystemUIFont",null,null,null,null,null,null,null,null,null,null,null,null,null,B.f,null,null,null,"blackRedwoodCity labelSmall",null,null,null,null)
 B.V3=new A.dP(B.SS,B.RP,B.ST,B.Tk,B.Rw,B.RE,B.S7,B.Tf,B.Sk,B.TG,B.R0,B.Ri,B.TD,B.TY,B.R7)
-B.V5=new A.i1("Sign in with Google",null,null,null,null,null,null,null,null)
 B.UA=new A.o(!0,B.c5,null,null,null,null,40,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.V6=new A.i1("\u2713",null,B.UA,null,null,null,null,null,null)
-B.V8=new A.i1("Today's Puzzle \u2192",null,null,null,null,null,null,null,null)
+B.V5=new A.i1("\u2713",null,B.UA,null,null,null,null,null,null)
+B.V7=new A.i1("Today's Puzzle \u2192",null,null,null,null,null,null,null,null)
+B.V8=new A.i1("Sign in with Google(Use company email address)",null,null,null,null,null,null,null,null)
 B.Sj=new A.o(!0,null,null,null,null,null,26,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.V9=new A.i1("\u23f8",null,B.Sj,null,null,null,null,null,null)
 B.YB=new A.ahR(0,"system")
@@ -95423,7 +95423,7 @@ r($,"aJI","aGo",()=>{var q=new A.ZG()
 q.D4($.ayk())
 return q})
 s($,"b_s","kb",()=>$.ka().gakX())
-s($,"aYj","aHY",()=>A.bO("^[\\w.+-]+@[\\w-]+\\.[a-z]{2,}$",!1,!1))
+s($,"aYj","aHY",()=>A.bO("^[\\w.+-]+@inspiritvision\\.com$",!1,!1))
 s($,"aZ_","aIq",()=>A.agg(1,1,500))
 s($,"aYb","aHR",()=>A.aPZ(new A.akw(),t.Pb))
 s($,"b_2","aJ6",()=>new A.QS())
