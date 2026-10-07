@@ -1,34 +1,51 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const String _supabaseUrl =
-    'https://pnczxyjpydrdochlzclt.supabase.co';
-const String _supabaseAnonKey = 'sb_publishable_yXDnqcTlrGGb8BppNP-6vw_rONAlZuO';
+const String _supabaseUrl = 'https://pnczxyjpydrdochlzclt.supabase.co';
+const String _supabaseAnonKey =
+    'sb_publishable_yXDnqcTlrGGb8BppNP-6vw_rONAlZuO';
+
+// The *Web application* OAuth client ID (the same one configured in the
+// Supabase Google provider).
+const String webClientId =
+    '2168155933-279hn1tehe64bondv9vcfgsm39g317vd.apps.googleusercontent.com';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Supabase.initialize(
-      url: _supabaseUrl,
-      anonKey: _supabaseAnonKey,
-    );
-  } catch (_) {
-  }
-
+  await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
   runApp(const CryptogramApp());
 }
 
 final supabase = Supabase.instance.client;
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SOURCE LOGIC — untouched from the original cryptogram-main project
-// ═════════════════════════════════════════════════════════════════════════════
+// ─── Google Sign-In (google_sign_in 6.x API) ─────────────────────────────────
+// serverClientId is not supported on web, so the mobile instance is only
+// created off-web. On web we use Supabase's OAuth redirect instead.
+final GoogleSignIn? _googleSignIn =
+kIsWeb ? null : GoogleSignIn(serverClientId: webClientId);
 
-// ─── lib/models/cryptogram_engine.dart (unchanged) ────────────────────────────
+Future<void> signOutEverywhere() async {
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    debugPrint('Supabase sign-out error: $e');
+  }
+  try {
+    await _googleSignIn?.signOut();
+  } catch (e) {
+    debugPrint('Google sign-out error: $e');
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SOURCE LOGIC
+// ═════════════════════════════════════════════════════════════════════════════
 
 class CryptogramEngine {
   final String plainText;
@@ -88,122 +105,17 @@ class CryptogramEngine {
   }
 }
 
-// ─── lib/services/mock_sentence_service.dart (unchanged) ──────────────────────
-
 class MockSentenceService {
-  // Pool of accessible, easy-to-medium length phrases and quotes
+  // Add more phrases here to widen the daily pool.
   static const List<String> _sentencePool = [
-    // "stay curious and keep learning",
-    // "consistency brings great success",
-    // "creativity is intelligence having fun",
     "action is the key to all success",
     "small steps every day lead to big results",
-    // "never stop exploring new ideas",
-    // "clarity comes from taking action",
-    // "believe you can and you are halfway there",
-    // "small steps forward still count as progress",
-    // "every sunrise brings a brand new start",
-    // "kindness costs nothing but means everything",
-    // "focus on progress not on perfection",
     "great things take time and patience",
-    // "believe in yourself before anyone else",
-    // "hard work always beats natural talent",
-    // "stay humble stay hungry stay focused",
-    // "difficult roads often lead to beautiful places",
-    // "your only limit is your own mind",
-    // "push yourself because no one else will",
-    // "success starts with a single decision",
     "dream big and dare to fail",
-    // "change your thoughts and change your world",
-    // "the best view comes after the climb",
     "never give up on your goals",
-    // "do what you can with what you have",
-    // "wake up with determination sleep with satisfaction",
-    // "good things come to those who hustle",
-    // "turn your wounds into wisdom and strength",
-    // "a little progress each day adds up",
-    // "doubt kills more dreams than failure does",
-    // "be stronger than your strongest excuse",
-    // "learn from yesterday live for today",
-    // "discipline is choosing what you want most",
-    // "little by little a little becomes a lot",
-    // "you are capable of amazing things",
-    // "trust the process and stay consistent",
-    // "fall seven times stand up eight",
-    // "work hard in silence let success speak",
-    // "positive mindset brings positive outcomes always",
-    // "nothing worth having comes without effort",
-    // "chase your dreams not your fears",
-    // "every expert was once a beginner",
-    // "keep going you are almost there",
-    // "great minds discuss ideas not people",
-    // "actions speak louder than empty words",
-    // "life rewards those who take chances",
-    // "stay patient and trust your journey",
-    // "do more of what makes you happy",
-    // "your attitude determines your altitude in life",
-    // "the harder you work the luckier you get",
-    // "progress not perfection is the goal",
-    // "start where you are use what you have",
-    // "courage is grace under real pressure",
-    // "you miss every shot you never take",
-    // "consistency beats intensity in the long run",
-    // "dream it plan it and do it",
-    // "growth begins at the end of comfort",
-    // "choose progress over comfort every single day",
-    // "practice does not make perfect practice makes permanent",
-    // "be the energy you want to attract",
-    // "small disciplines repeated daily create huge results",
-    // "every accomplishment starts with the decision to try",
-    // "stay focused and never lose sight of goals",
-    // "hardships often prepare people for greater things",
-    // "set goals crush them then set new ones",
-    // "what you focus on tends to expand",
-    // "motivation gets you started habit keeps you going",
-    // "winners are not afraid of losing",
-    // "simplicity is the ultimate form of sophistication",
-    // "great work comes from great focus",
-    // "confidence comes from preparation and practice",
-    // "adaptability is key to long term success",
-    // "be so good they cannot ignore you",
-    // "growth is uncomfortable but always worth it",
-    // "stay curious and never stop learning",
-    // "champions train when nobody else is watching",
-    // "every master was once a total disaster",
-    // "success is a series of small wins",
-    // "effort is never wasted even in failure",
-    // "you cannot pour from an empty cup",
-    // "do the work trust the outcome",
-    // "the comeback is always stronger than the setback",
-    // "one day or day one you decide",
-    // "struggles today build strength for tomorrow",
-    // "persistence turns failure into extraordinary achievement",
-    // "great journeys begin with small brave steps",
-    // "focus on being productive instead of busy",
-    // "excellence is a habit not an act",
-    // "better to try and fail than never try",
-    // "real change happens outside comfort zones",
-    // "speak less listen more learn faster",
-    // "patience and persistence conquer almost everything",
-    // "progress feels slow until suddenly it doesn't",
-    // "never underestimate the power of consistency",
-    // "take the risk or lose the chance",
-    // "your future is created by what you do today",
-    // "small wins build unstoppable long term momentum",
-    // "stay grounded but keep reaching higher",
-    // "discipline outlasts motivation every single time",
-    // "choose growth even when it is hard",
-    // "the only failure is giving up early",
-    // "great things never came from comfort zones",
-    // "keep learning keep growing keep going",
-    // "every day is a second chance",
-    // "do it scared but do it anyway",
-    // "big journeys start with small commitments",
-    // "stay grateful stay grounded stay driven",
-    // "the best time to start is now",
   ];
 
-  /// Returns 5 easy-to-medium sentences for the current date
+  /// Returns the puzzle(s) for the current date (same for everyone).
   static List<String> getDailyPuzzles() {
     final now = DateTime.now();
     // Unique seed based on Year, Month, and Day (YYYYMMDD)
@@ -213,13 +125,12 @@ class MockSentenceService {
     final List<String> poolCopy = List<String>.from(_sentencePool);
     poolCopy.shuffle(random);
 
-    // Pick top 5 for today
     return poolCopy.take(1).toList();
   }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// UI — rebuilt from the "Quiz app design with timer" visual design
+// UI
 // ═════════════════════════════════════════════════════════════════════════════
 
 class CryptogramApp extends StatelessWidget {
@@ -245,7 +156,8 @@ class CryptogramApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.bg,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: const BorderSide(color: AppColors.border),
@@ -259,13 +171,18 @@ class CryptogramApp extends StatelessWidget {
             borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
           hintStyle: AppText.sans(color: AppColors.muted, size: 13),
-          labelStyle: AppText.sans(color: AppColors.muted, size: 10, weight: FontWeight.w600, letterSpacing: 1.0),
+          labelStyle: AppText.sans(
+              color: AppColors.muted,
+              size: 10,
+              weight: FontWeight.w600,
+              letterSpacing: 1.0),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             padding: const EdgeInsets.symmetric(vertical: 14),
             textStyle: AppText.sans(weight: FontWeight.w700, size: 14),
           ),
@@ -277,25 +194,25 @@ class CryptogramApp extends StatelessWidget {
   }
 }
 
-// ─── Color palette (from quiz app design) ──────────────────────────────────────
+// ─── Color palette ────────────────────────────────────────────────────────────
 
 class AppColors {
-  static const bg      = Color(0xFF0B0F17);
+  static const bg = Color(0xFF0B0F17);
   static const surface = Color(0xFF131921);
-  static const header  = Color(0xFF0D1526);
-  static const kbd     = Color(0xFF0D1526);
-  static const kbdKey  = Color(0xFF162036);
+  static const header = Color(0xFF0D1526);
+  static const kbd = Color(0xFF0D1526);
+  static const kbdKey = Color(0xFF162036);
   static const primary = Color(0xFF4A9EFF);
-  static const amber   = Color(0xFFF5A623);
-  static const green   = Color(0xFF2EA043);
-  static const red     = Color(0xFFF85149);
-  static const text    = Color(0xFFE6EDF3);
-  static const sub     = Color(0xFFCDD5E0);
-  static const muted   = Color(0xFF7A8799);
-  static const border  = Color(0xFF232D3F);
+  static const amber = Color(0xFFF5A623);
+  static const green = Color(0xFF2EA043);
+  static const red = Color(0xFFF85149);
+  static const text = Color(0xFFE6EDF3);
+  static const sub = Color(0xFFCDD5E0);
+  static const muted = Color(0xFF7A8799);
+  static const border = Color(0xFF232D3F);
 }
 
-// ─── Text style helpers (system fonts — no extra font package required) ───────
+// ─── Text style helpers ───────────────────────────────────────────────────────
 
 class AppText {
   static TextStyle mono({
@@ -341,13 +258,8 @@ String _todayLabel() {
   ];
 
   final now = DateTime.now().toUtc();
-  final today =
-      '${now.year.toString().padLeft(4, '0')}-'
-      '${now.month.toString().padLeft(2, '0')}-'
-      '${now.day.toString().padLeft(2, '0')}';
   return '${months[now.month - 1]} ${now.day}, ${now.year}';
 }
-
 
 const _kbdRows = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -370,7 +282,6 @@ String _friendlySupabaseError(Object error) {
   if (lower.contains('come back tomorrow')) {
     return "You've already played today's puzzle. Come back tomorrow for a new one!";
   }
-
 
   if (lower.contains('invalid email or password') ||
       lower.contains('invalid login') ||
@@ -420,7 +331,7 @@ Future<void> _claimDailyPuzzle(String userId) async {
   }
 }
 
-// ─── LoginScreen (from "Quiz app design with timer") ──────────────────────────
+// ─── LoginScreen ──────────────────────────────────────────────────────────────
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -437,15 +348,41 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _obscure = true;
 
-  static final _emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[a-z]{2,}$', caseSensitive: false);
+  StreamSubscription<AuthState>? _authSub;
+  bool _completingGoogle = false;
+
+  static final _emailRegex =
+  RegExp(r'^[\w.+-]+@[\w-]+\.[a-z]{2,}$', caseSensitive: false);
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Fires after signInWithIdToken (mobile) and after the OAuth redirect
+    // returns to the page (web).
+    _authSub = supabase.auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.signedIn && state.session != null) {
+        _completeGoogleLogin();
+      }
+    });
+
+    // Already have a session (e.g. returning from the web redirect).
+    if (supabase.auth.currentSession != null) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _completeGoogleLogin());
+    }
+  }
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _fullNameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
+
+  // ─── Email / password (custom RPC) login ────────────────────────────────────
 
   Future<void> _submit() async {
     final fullName = _fullNameCtrl.text.trim();
@@ -514,7 +451,6 @@ class _LoginScreenState extends State<LoginScreen> {
             },
           );
         } catch (registerError) {
-          // Keep the daily-play block intact even if registration also errors.
           if (_isDailyPlayBlocked(registerError)) {
             rethrow;
           }
@@ -525,13 +461,8 @@ class _LoginScreenState extends State<LoginScreen> {
               msg.contains('already registered');
 
           if (accountAlreadyExists) {
-            // Registration failing this way *proves* the account is real —
-            // the first login attempt just didn't go through (e.g. a
-            // dropped request). Retry login instead of showing a confusing
-            // "already exists" error to someone who's simply logging back
-            // in with the right credentials. If the password is actually
-            // wrong, this second attempt fails too and surfaces that
-            // correctly below.
+            // The account is real, so the first login attempt just didn't go
+            // through. Retry login; a wrong password fails here correctly.
             result = await tryLogin();
           } else {
             rethrow;
@@ -552,8 +483,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
-      // The database uses public.user_accounts.user_id (bigint).
-      // Accept user_id first, with id kept as a compatibility fallback.
+      // public.user_accounts.user_id (bigint); `id` kept as a fallback.
       final rawUserId = userData['user_id'] ?? userData['id'];
       if (rawUserId == null) {
         throw StateError('Supabase did not return a user id.');
@@ -568,12 +498,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // Claim the daily puzzle before opening GameScreen.
-      // If this account already played today, this throws the exact
-      // "come back tomorrow" error and the game is never opened.
       await _claimDailyPuzzle(userId);
 
-      final storedFullName =
-      (userData['full_name'] ?? fullName).toString();
+      final storedFullName = (userData['full_name'] ?? fullName).toString();
 
       if (!mounted) return;
 
@@ -599,6 +526,115 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // ─── Google login ───────────────────────────────────────────────────────────
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _loading = true;
+      _error = '';
+    });
+
+    try {
+      if (kIsWeb) {
+        // Redirects to Google and back; _completeGoogleLogin runs on return.
+        await supabase.auth.signInWithOAuth(OAuthProvider.google);
+        return;
+      }
+
+      final account = await _googleSignIn!.signIn();
+      if (account == null) {
+        // User closed the Google dialog without choosing an account.
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        throw StateError('Google did not return an ID token.');
+      }
+
+      // Triggers onAuthStateChange -> _completeGoogleLogin.
+      await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: auth.accessToken,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = _friendlySupabaseError(e);
+      });
+    }
+  }
+
+  /// Runs once a Supabase Auth session exists: maps the Google user onto the
+  /// app's user_accounts row, claims today's puzzle, then opens the game.
+  Future<void> _completeGoogleLogin() async {
+    if (_completingGoogle) return;
+    _completingGoogle = true;
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = '';
+      });
+    }
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw StateError('Google sign-in did not complete.');
+      }
+
+      final meta = user.userMetadata ?? {};
+      final googleName = (meta['full_name'] ?? meta['name'] ?? '').toString();
+
+      final result = await supabase.rpc(
+        'login_google_user',
+        params: {'p_full_name': googleName},
+      );
+
+      final dynamic row =
+      (result is List && result.isNotEmpty) ? result.first : result;
+      if (row is! Map) {
+        throw StateError('Unexpected response from login_google_user.');
+      }
+
+      final userId = (row['user_id'] ?? row['id']).toString();
+      if (int.tryParse(userId) == null) {
+        throw StateError(
+            'login_google_user must return user_accounts.user_id.');
+      }
+
+      // Same once-a-day limit as the password login.
+      await _claimDailyPuzzle(userId);
+
+      if (!mounted) return;
+
+      final fullName = (row['full_name'] ?? googleName).toString();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GameScreen(
+            userId: userId,
+            username: (user.email ?? 'player').split('@').first,
+            fullName: fullName.isEmpty ? 'Player' : fullName,
+          ),
+        ),
+      );
+    } catch (e) {
+      await signOutEverywhere();
+      _completingGoogle = false;
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = _friendlySupabaseError(e);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -613,7 +649,10 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 500,
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  colors: [AppColors.primary.withValues(alpha: 0.06), Colors.transparent],
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.06),
+                    Colors.transparent
+                  ],
                   radius: 0.8,
                 ),
               ),
@@ -655,15 +694,25 @@ class _LoginScreenState extends State<LoginScreen> {
               end: Alignment.bottomRight,
               colors: [Color(0xFF162036), Color(0xFF0D1526)],
             ),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.22)),
-            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.08), blurRadius: 40)],
+            border:
+            Border.all(color: AppColors.primary.withValues(alpha: 0.22)),
+            boxShadow: [
+              BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  blurRadius: 40)
+            ],
           ),
-          child: const Icon(Icons.grid_view_rounded, color: AppColors.primary, size: 26),
+          child: const Icon(Icons.grid_view_rounded,
+              color: AppColors.primary, size: 26),
         ),
         const SizedBox(height: 14),
         Text(
           'CRYPTOGRAMS',
-          style: AppText.mono(size: 20, weight: FontWeight.w700, letterSpacing: 4, color: AppColors.text),
+          style: AppText.mono(
+              size: 20,
+              weight: FontWeight.w700,
+              letterSpacing: 4,
+              color: AppColors.text),
         ),
         const SizedBox(height: 5),
         Text(
@@ -681,7 +730,12 @@ class _LoginScreenState extends State<LoginScreen> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.45), blurRadius: 60, offset: const Offset(0, 24))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 60,
+              offset: const Offset(0, 24))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -709,7 +763,9 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.visiblePassword,
             suffixIcon: IconButton(
               icon: Icon(
-                _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _obscure
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 color: AppColors.muted,
                 size: 18,
               ),
@@ -719,23 +775,43 @@ class _LoginScreenState extends State<LoginScreen> {
           if (_error.isNotEmpty) ...[
             const SizedBox(height: 14),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.red.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: AppColors.red.withValues(alpha: 0.22)),
+                border:
+                Border.all(color: AppColors.red.withValues(alpha: 0.22)),
               ),
-              child: Text(_error, style: AppText.sans(size: 12, color: AppColors.red)),
+              child: Text(_error,
+                  style: AppText.sans(size: 12, color: AppColors.red)),
             ),
           ],
           const SizedBox(height: 20),
           SizedBox(
             height: 50,
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2))
+                ? const Center(
+                child: CircularProgressIndicator(
+                    color: AppColors.primary, strokeWidth: 2))
                 : ElevatedButton(
               onPressed: _submit,
               child: const Text("Today's Puzzle →"),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: _loading ? null : _handleGoogleSignIn,
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text('Sign in with Google'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.border),
+                foregroundColor: AppColors.text,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
         ],
@@ -746,13 +822,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
 // ─── Labeled text field ───────────────────────────────────────────────────────
 
-class _LabeledField extends StatefulWidget {
+class _LabeledField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final String placeholder;
   final bool obscure;
   final Widget? suffixIcon;
-  final ValueChanged<String>? onChanged;
   final TextCapitalization textCapitalization;
   final TextInputType keyboardType;
 
@@ -764,33 +839,31 @@ class _LabeledField extends StatefulWidget {
     this.suffixIcon,
     this.textCapitalization = TextCapitalization.none,
     this.keyboardType = TextInputType.text,
-  }) : onChanged = null;
+  });
 
-  @override
-  State<_LabeledField> createState() => _LabeledFieldState();
-}
-
-class _LabeledFieldState extends State<_LabeledField> {
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.label,
-          style: AppText.sans(size: 10, weight: FontWeight.w600, color: AppColors.muted, letterSpacing: 1.0),
+          label,
+          style: AppText.sans(
+              size: 10,
+              weight: FontWeight.w600,
+              color: AppColors.muted,
+              letterSpacing: 1.0),
         ),
         const SizedBox(height: 6),
         TextField(
-          controller: widget.controller,
-          obscureText: widget.obscure,
-          textCapitalization: widget.textCapitalization,
-          keyboardType: widget.keyboardType,
+          controller: controller,
+          obscureText: obscure,
+          textCapitalization: textCapitalization,
+          keyboardType: keyboardType,
           style: AppText.sans(size: 13, color: AppColors.text),
-          onChanged: widget.onChanged,
           decoration: InputDecoration(
-            hintText: widget.placeholder,
-            suffixIcon: widget.suffixIcon,
+            hintText: placeholder,
+            suffixIcon: suffixIcon,
           ),
         ),
       ],
@@ -815,32 +888,33 @@ class _DotGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DotGridPainter _) => false;
+  bool shouldRepaint(_DotGridPainter oldDelegate) => false;
 }
 
-// ─── GameScreen (replaces views/cryptogram_screen.dart) ───────────────────────
+// ─── GameScreen ───────────────────────────────────────────────────────────────
 
 class GameScreen extends StatefulWidget {
   final String userId;
   final String username;
   final String fullName;
-  const GameScreen({super.key, required this.userId, required this.username, required this.fullName});
+  const GameScreen(
+      {super.key,
+        required this.userId,
+        required this.username,
+        required this.fullName});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
-  // Daily puzzles, sourced from the untouched MockSentenceService.
-  // Only 3 are played per session (MockSentenceService itself still returns 5).
   late List<String> dailySentences;
   int _puzzleIndex = 0;
   bool get _isLastPuzzle => _puzzleIndex == dailySentences.length - 1;
 
-  // Engine for the current puzzle, sourced from the untouched CryptogramEngine
   late CryptogramEngine _engine;
 
-  // cipher letter (UPPER) -> plain letter (UPPER), derived from engine.cipherMap
+  // cipher letter (UPPER) -> plain letter (UPPER)
   late Map<String, String> _decodeMap;
 
   // Per-puzzle UI state (reset on advance)
@@ -848,18 +922,14 @@ class _GameScreenState extends State<GameScreen> {
   String? _selectedCipher;
   final Set<String> _hintedLetters = {};
   int _hintsLeft = 3;
-  bool _checked = false;
   bool _solved = false;
 
-  // Timers: one running total for the session, one for the current puzzle only
+  // Timers: one running total for the session, one for the current puzzle
   int _timeElapsed = 0;
   int _puzzleTimeElapsed = 0;
   bool _paused = false;
 
-  // Current daily streak, loaded from user_accounts and refreshed after each
-  // session is submitted (the DB trigger on game_sessions keeps it in sync).
   int? _currentStreak;
-
 
   Timer? _timer;
   bool _sessionComplete = false;
@@ -883,9 +953,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// Loads the current streak for this user from user_accounts.
-  /// Called on entry and again after a session is submitted, since the
-  /// `update_streak_on_solve` trigger keeps user_accounts.streak in sync
-  /// whenever a game_sessions row is inserted with a matching user_id.
   Future<void> _fetchStreak() async {
     final id = int.tryParse(widget.userId);
     if (id == null) return;
@@ -914,16 +981,14 @@ class _GameScreenState extends State<GameScreen> {
 
   void _loadPuzzle(int index) {
     _engine = CryptogramEngine(dailySentences[index]);
-    // Derive cipher->plain (UPPER) map from the engine's plain->cipher map,
-    // without altering CryptogramEngine itself.
     _decodeMap = {
-      for (final e in _engine.cipherMap.entries) e.value.toUpperCase(): e.key.toUpperCase(),
+      for (final e in _engine.cipherMap.entries)
+        e.value.toUpperCase(): e.key.toUpperCase(),
     };
     _userMap.clear();
     _selectedCipher = null;
     _hintedLetters.clear();
     _hintsLeft = 3;
-    _checked = false;
     _solved = false;
     _puzzleTimeElapsed = 0;
   }
@@ -971,7 +1036,6 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _userMap.removeWhere((k, v) => v == plain && k != _selectedCipher);
       _userMap[_selectedCipher!] = plain;
-      _checked = false;
     });
 
     _checkSolved();
@@ -982,11 +1046,9 @@ class _GameScreenState extends State<GameScreen> {
     if (_selectedCipher == null || _inputLocked) return;
     setState(() {
       _userMap.remove(_selectedCipher);
-      _checked = false;
     });
   }
 
-  /// Uses the untouched CryptogramEngine.isSolved() to validate the guesses.
   void _checkSolved() {
     if (_solved || _sessionComplete) return;
 
@@ -1015,20 +1077,24 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _advanceSelection() {
+    final current = _selectedCipher;
+    if (current == null) return;
+
     final inOrder = <String>[];
     for (final ch in _engine.encryptedText.toUpperCase().split('')) {
-      if (RegExp(r'[A-Z]').hasMatch(ch) && !inOrder.contains(ch)) inOrder.add(ch);
+      if (RegExp(r'[A-Z]').hasMatch(ch) && !inOrder.contains(ch)) {
+        inOrder.add(ch);
+      }
     }
-    final ci = inOrder.indexOf(_selectedCipher!);
-    final nxt = inOrder.skip(ci + 1).firstWhere((l) => !_userMap.containsKey(l), orElse: () => '');
+    final ci = inOrder.indexOf(current);
+    final nxt = inOrder
+        .skip(ci + 1)
+        .firstWhere((l) => !_userMap.containsKey(l), orElse: () => '');
     if (nxt.isNotEmpty) setState(() => _selectedCipher = nxt);
   }
 
-  /// Stores this puzzle's stats exactly once (guards against double-recording
-  /// if _checkSolved fires more than once for the same puzzle).
-  /// Records the stats for the current puzzle safely
+  /// Stores this puzzle's stats exactly once.
   void _recordPuzzleResult({required bool skipped}) {
-    // Prevent double-recording if this puzzle was already checked
     if (_puzzleTimes.length > _puzzleIndex) return;
 
     setState(() {
@@ -1046,8 +1112,6 @@ class _GameScreenState extends State<GameScreen> {
       final rawPoints = 1000 - _timeElapsed - (100 * totalHints);
       final points = rawPoints < 0 ? 0 : rawPoints;
 
-      // user_id is what links this session back to user_accounts so the
-      // streak trigger can find and update the right row.
       final userIdInt = int.tryParse(widget.userId);
       if (userIdInt == null) {
         debugPrint('Warning: could not parse userId "${widget.userId}" — '
@@ -1063,7 +1127,6 @@ class _GameScreenState extends State<GameScreen> {
         'puzzles_skipped': totalSkipped,
       });
 
-      // Pull the freshly-updated streak so the summary screen shows it.
       await _fetchStreak();
 
       if (mounted) {
@@ -1111,15 +1174,22 @@ class _GameScreenState extends State<GameScreen> {
       barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (dialogContext) => Dialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppColors.border)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded, size: 34, color: AppColors.amber),
+              const Icon(Icons.warning_amber_rounded,
+                  size: 34, color: AppColors.amber),
               const SizedBox(height: 12),
-              Text('Skip this puzzle?', style: AppText.mono(size: 16, weight: FontWeight.w700, color: AppColors.text)),
+              Text('Skip this puzzle?',
+                  style: AppText.mono(
+                      size: 16,
+                      weight: FontWeight.w700,
+                      color: AppColors.text)),
               const SizedBox(height: 8),
               Text(
                 "You won't get credit for solving it, and this can't be undone.",
@@ -1136,9 +1206,14 @@ class _GameScreenState extends State<GameScreen> {
                         side: const BorderSide(color: AppColors.border),
                         foregroundColor: AppColors.sub,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: Text('Cancel', style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.sub)),
+                      child: Text('Cancel',
+                          style: AppText.sans(
+                              size: 13,
+                              weight: FontWeight.w600,
+                              color: AppColors.sub)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1152,9 +1227,14 @@ class _GameScreenState extends State<GameScreen> {
                         backgroundColor: AppColors.amber,
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: Text('Skip Puzzle', style: AppText.sans(size: 13, weight: FontWeight.w700, color: Colors.black)),
+                      child: Text('Skip Puzzle',
+                          style: AppText.sans(
+                              size: 13,
+                              weight: FontWeight.w700,
+                              color: Colors.black)),
                     ),
                   ),
                 ],
@@ -1203,7 +1283,10 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    final unguessed = _cipherLetters.where((cl) => _userMap[cl] != _decodeMap[cl]).toList()..shuffle();
+    final unguessed = _cipherLetters
+        .where((cl) => _userMap[cl] != _decodeMap[cl])
+        .toList()
+      ..shuffle();
 
     if (unguessed.isEmpty) {
       _showToast('All correct!');
@@ -1219,13 +1302,11 @@ class _GameScreenState extends State<GameScreen> {
       _hintedLetters.add(pick);
       _hintsLeft--;
       _selectedCipher = pick;
-      _checked = false;
     });
 
     _showToast('Hint: $pick = $correct');
     _checkSolved();
   }
-
 
   // ─── Toast ────────────────────────────────────────────────────────────────
 
@@ -1233,7 +1314,9 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: AppText.sans(size: 18, color: AppColors.sub), textAlign: TextAlign.center),
+      content: Text(message,
+          style: AppText.sans(size: 18, color: AppColors.sub),
+          textAlign: TextAlign.center),
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
@@ -1246,10 +1329,15 @@ class _GameScreenState extends State<GameScreen> {
     ));
   }
 
+  Future<void> _signOut() async {
+    await signOutEverywhere();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
 
-  void _signOut() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-
-  void _seeLeaderboard() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
+  void _seeLeaderboard() => Navigator.pushReplacement(
+      context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
 
   // ─── Build ────────────────────────────────────────────────────────────────
 
@@ -1302,11 +1390,10 @@ class _GameScreenState extends State<GameScreen> {
         child: Container(
           height: 54,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+          decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.border))),
           child: Row(
             children: [
-              // Puzzle-specific timer (this is the primary badge — matches
-              // "time for each puzzle" from the design).
               _TimerBadge(
                 timeElapsed: _puzzleTimeElapsed,
                 paused: _paused,
@@ -1316,7 +1403,11 @@ class _GameScreenState extends State<GameScreen> {
                 child: Text(
                   'DAILY CRYPTOGRAM',
                   textAlign: TextAlign.center,
-                  style: AppText.mono(size: 13, weight: FontWeight.w700, letterSpacing: 3, color: AppColors.text),
+                  style: AppText.mono(
+                      size: 13,
+                      weight: FontWeight.w700,
+                      letterSpacing: 3,
+                      color: AppColors.text),
                 ),
               ),
               if (_currentStreak != null) ...[
@@ -1326,7 +1417,8 @@ class _GameScreenState extends State<GameScreen> {
               _MenuButton(
                 fullName: widget.fullName,
                 username: widget.username,
-                onHowTo: () => _showToast('Tap a cipher letter, then type or tap your guess.'),
+                onHowTo: () => _showToast(
+                    'Tap a cipher letter, then type or tap your guess.'),
                 onSignOut: _signOut,
               ),
             ],
@@ -1336,11 +1428,12 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // ─── Progress bars (puzzle steps + letter fill) ───────────────────────────
+  // ─── Progress bars ────────────────────────────────────────────────────────
 
   Widget _buildProgressBars() {
     final letters = _cipherLetters;
-    final solvedCount = letters.where((cl) => _userMap[cl] == _decodeMap[cl]).length;
+    final solvedCount =
+        letters.where((cl) => _userMap[cl] == _decodeMap[cl]).length;
     final letterProg = letters.isEmpty ? 0.0 : solvedCount / letters.length;
 
     return Column(
@@ -1351,8 +1444,10 @@ class _GameScreenState extends State<GameScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(dailySentences.length, (i) {
-              final done = i < _puzzleWasSkipped.length || (i == _puzzleIndex && (_solved || _sessionComplete));
-              final skipped = i < _puzzleWasSkipped.length && _puzzleWasSkipped[i];
+              final done = i < _puzzleWasSkipped.length ||
+                  (i == _puzzleIndex && (_solved || _sessionComplete));
+              final skipped =
+                  i < _puzzleWasSkipped.length && _puzzleWasSkipped[i];
               final current = i == _puzzleIndex;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -1368,7 +1463,12 @@ class _GameScreenState extends State<GameScreen> {
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: done
-                    ? Icon(skipped ? Icons.skip_next_rounded : Icons.check_rounded, size: 8, color: Colors.white)
+                    ? Icon(
+                    skipped
+                        ? Icons.skip_next_rounded
+                        : Icons.check_rounded,
+                    size: 8,
+                    color: Colors.white)
                     : null,
               );
             }),
@@ -1388,7 +1488,8 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildPuzzleArea() {
     final letters = _cipherLetters;
-    final solvedCount = letters.where((cl) => _userMap[cl] == _decodeMap[cl]).length;
+    final solvedCount =
+        letters.where((cl) => _userMap[cl] == _decodeMap[cl]).length;
 
     return Stack(
       children: [
@@ -1405,15 +1506,20 @@ class _GameScreenState extends State<GameScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                          border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.25)),
                         ),
                         child: Text(
                           'Puzzle ${_puzzleIndex + 1} of ${dailySentences.length}',
-                          style: AppText.sans(size: 11, weight: FontWeight.w600, color: AppColors.primary),
+                          style: AppText.sans(
+                              size: 11,
+                              weight: FontWeight.w600,
+                              color: AppColors.primary),
                         ),
                       ),
                     ],
@@ -1422,12 +1528,18 @@ class _GameScreenState extends State<GameScreen> {
 
                   // Cipher words
                   ImageFiltered(
-                    imageFilter: _paused ? ImageFilter.blur(sigmaX: 10, sigmaY: 10) : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                    imageFilter: _paused
+                        ? ImageFilter.blur(sigmaX: 10, sigmaY: 10)
+                        : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                     child: Wrap(
                       spacing: 16,
                       runSpacing: 20,
                       alignment: WrapAlignment.center,
-                      children: _engine.encryptedText.toUpperCase().split(' ').map(_buildWord).toList(),
+                      children: _engine.encryptedText
+                          .toUpperCase()
+                          .split(' ')
+                          .map(_buildWord)
+                          .toList(),
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -1436,11 +1548,13 @@ class _GameScreenState extends State<GameScreen> {
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _dotStat('$solvedCount/${letters.length} solved', AppColors.primary),
+                      _dotStat('$solvedCount/${letters.length} solved',
+                          AppColors.primary),
                       _divider(),
                       _hintStat(),
                       _divider(),
-                      _dotStat('Total ${formatTime(_timeElapsed)}', AppColors.muted),
+                      _dotStat('Total ${formatTime(_timeElapsed)}',
+                          AppColors.muted),
                     ],
                   ),
                 ],
@@ -1448,12 +1562,12 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
         ),
-
         if (_paused)
           Positioned.fill(
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                 decoration: BoxDecoration(
                   color: AppColors.surface.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(16),
@@ -1462,15 +1576,18 @@ class _GameScreenState extends State<GameScreen> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   const Text('⏸', style: TextStyle(fontSize: 26)),
                   const SizedBox(height: 6),
-                  Text('Game Paused', style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.sub)),
+                  Text('Game Paused',
+                      style: AppText.sans(
+                          size: 13,
+                          weight: FontWeight.w600,
+                          color: AppColors.sub)),
                   const SizedBox(height: 3),
-                  Text('Tap ▶ to resume', style: AppText.sans(size: 11, color: AppColors.muted)),
+                  Text('Tap ▶ to resume',
+                      style: AppText.sans(size: 11, color: AppColors.muted)),
                 ]),
               ),
             ),
           ),
-
-        if (_solved && !_isLastPuzzle) Positioned.fill(child: _buildPuzzleSolvedOverlay()),
       ],
     );
   }
@@ -1510,22 +1627,30 @@ class _GameScreenState extends State<GameScreen> {
           ? null
           : () => setState(() {
         _selectedCipher = ch;
-        _checked = false;
       }),
       child: AbsorbPointer(
         absorbing: _inputLocked,
         child: SizedBox(
           width: 30,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(ch, style: AppText.mono(size: 10, color: cipherColor, weight: isHinted ? FontWeight.w700 : FontWeight.w400)),
+            Text(ch,
+                style: AppText.mono(
+                    size: 10,
+                    color: cipherColor,
+                    weight: isHinted ? FontWeight.w700 : FontWeight.w400)),
             const SizedBox(height: 3),
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               width: 28,
               height: 32,
-              decoration: BoxDecoration(color: cellBg, border: Border(bottom: BorderSide(color: borderColor, width: 2))),
+              decoration: BoxDecoration(
+                  color: cellBg,
+                  border:
+                  Border(bottom: BorderSide(color: borderColor, width: 2))),
               alignment: Alignment.center,
-              child: Text(guess, style: AppText.mono(size: 17, weight: FontWeight.w600, color: guessColor)),
+              child: Text(guess,
+                  style: AppText.mono(
+                      size: 17, weight: FontWeight.w600, color: guessColor)),
             ),
           ]),
         ),
@@ -1536,7 +1661,10 @@ class _GameScreenState extends State<GameScreen> {
   Widget _dotStat(String label, Color dot) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 6, height: 6, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+      Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
       const SizedBox(width: 4),
       Text(label, style: AppText.sans(size: 12, color: AppColors.muted)),
     ]),
@@ -1545,10 +1673,14 @@ class _GameScreenState extends State<GameScreen> {
   Widget _hintStat() => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(Icons.lightbulb_outline_rounded, size: 12, color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted),
+      Icon(Icons.lightbulb_outline_rounded,
+          size: 12,
+          color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted),
       const SizedBox(width: 4),
       Text('$_hintsLeft hint${_hintsLeft != 1 ? 's' : ''} left',
-          style: AppText.sans(size: 12, color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted)),
+          style: AppText.sans(
+              size: 12,
+              color: _hintsLeft > 0 ? AppColors.amber : AppColors.muted)),
     ]),
   );
 
@@ -1560,8 +1692,12 @@ class _GameScreenState extends State<GameScreen> {
   // ─── Puzzle solved overlay (intermediate) ─────────────────────────────────
 
   Widget _buildPuzzleSolvedOverlay() {
-    final myTime = _puzzleTimes.length > _puzzleIndex ? _puzzleTimes[_puzzleIndex] : _puzzleTimeElapsed;
-    final hintsUsed = _hintsUsedPerPuzzle.length > _puzzleIndex ? _hintsUsedPerPuzzle[_puzzleIndex] : (3 - _hintsLeft);
+    final myTime = _puzzleTimes.length > _puzzleIndex
+        ? _puzzleTimes[_puzzleIndex]
+        : _puzzleTimeElapsed;
+    final hintsUsed = _hintsUsedPerPuzzle.length > _puzzleIndex
+        ? _hintsUsedPerPuzzle[_puzzleIndex]
+        : (3 - _hintsLeft);
     return Container(
       color: AppColors.bg.withValues(alpha: 0.88),
       child: Center(
@@ -1573,19 +1709,23 @@ class _GameScreenState extends State<GameScreen> {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: AppColors.border),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 60)],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5), blurRadius: 60)
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('✓', style: TextStyle(fontSize: 40, color: AppColors.green)),
+              const Text('✓',
+                  style: TextStyle(fontSize: 40, color: AppColors.green)),
               const SizedBox(height: 10),
               Text(
                 'Puzzle ${_puzzleIndex + 1} Complete!',
-                style: AppText.mono(size: 18, weight: FontWeight.w700, color: AppColors.green),
+                style: AppText.mono(
+                    size: 18, weight: FontWeight.w700, color: AppColors.green),
               ),
               const SizedBox(height: 16),
-              // Mini stats — this puzzle's own time, not the session total.
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1600,20 +1740,26 @@ class _GameScreenState extends State<GameScreen> {
               ),
               const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lock_open_rounded, size: 16, color: AppColors.primary),
+                    const Icon(Icons.lock_open_rounded,
+                        size: 16, color: AppColors.primary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Puzzle ${_puzzleIndex + 2} unlocked',
-                        style: AppText.sans(size: 13, weight: FontWeight.w700, color: AppColors.primary),
+                        style: AppText.sans(
+                            size: 13,
+                            weight: FontWeight.w700,
+                            color: AppColors.primary),
                       ),
                     ),
                   ],
@@ -1624,7 +1770,11 @@ class _GameScreenState extends State<GameScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _nextPuzzle,
-                  child: Text('Next Puzzle →', style: AppText.sans(size: 14, weight: FontWeight.w700, color: Colors.white)),
+                  child: Text('Next Puzzle →',
+                      style: AppText.sans(
+                          size: 14,
+                          weight: FontWeight.w700,
+                          color: Colors.white)),
                 ),
               ),
             ],
@@ -1653,30 +1803,38 @@ class _GameScreenState extends State<GameScreen> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: AppColors.border),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 80)],
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.6), blurRadius: 80)
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(anySkipped ? '🏁' : '🎉', style: const TextStyle(fontSize: 50)),
+                Text(anySkipped ? '🏁' : '🎉',
+                    style: const TextStyle(fontSize: 50)),
                 const SizedBox(height: 10),
-                Text('All Done, $firstName!', style: AppText.mono(size: 19, weight: FontWeight.w700, color: AppColors.green)),
+                Text('All Done, $firstName!',
+                    style: AppText.mono(
+                        size: 19,
+                        weight: FontWeight.w700,
+                        color: AppColors.green)),
                 const SizedBox(height: 4),
-                Text('You finished the puzzle', style: AppText.sans(size: 12, color: AppColors.muted)),
-
+                Text('You finished the puzzle',
+                    style: AppText.sans(size: 12, color: AppColors.muted)),
                 if (_currentStreak != null) ...[
                   const SizedBox(height: 12),
                   _StreakBadge(streak: _currentStreak!, large: true),
                 ],
-
                 const SizedBox(height: 20),
-
-                Text(formatTime(_timeElapsed), style: AppText.mono(size: 36, weight: FontWeight.w700, color: AppColors.amber)),
-                Text('total time', style: AppText.sans(size: 11, color: AppColors.muted)),
-
+                Text(formatTime(_timeElapsed),
+                    style: AppText.mono(
+                        size: 36,
+                        weight: FontWeight.w700,
+                        color: AppColors.amber)),
+                Text('total time',
+                    style: AppText.sans(size: 11, color: AppColors.muted)),
                 const SizedBox(height: 20),
-
-                // Per-puzzle breakdown — own time + hints + skipped status
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.bg.withValues(alpha: 0.5),
@@ -1686,13 +1844,20 @@ class _GameScreenState extends State<GameScreen> {
                   child: Column(
                     children: List.generate(dailySentences.length, (i) {
                       final time = i < _puzzleTimes.length ? _puzzleTimes[i] : 0;
-                      final hints = i < _hintsUsedPerPuzzle.length ? _hintsUsedPerPuzzle[i] : 0;
-                      final skipped = i < _puzzleWasSkipped.length && _puzzleWasSkipped[i];
+                      final hints = i < _hintsUsedPerPuzzle.length
+                          ? _hintsUsedPerPuzzle[i]
+                          : 0;
+                      final skipped =
+                          i < _puzzleWasSkipped.length && _puzzleWasSkipped[i];
                       final isLast = i == dailySentences.length - 1;
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          border: isLast ? null : const Border(bottom: BorderSide(color: AppColors.border)),
+                          border: isLast
+                              ? null
+                              : const Border(
+                              bottom: BorderSide(color: AppColors.border)),
                         ),
                         child: Row(
                           children: [
@@ -1700,22 +1865,37 @@ class _GameScreenState extends State<GameScreen> {
                               width: 24,
                               height: 24,
                               decoration: BoxDecoration(
-                                color: (skipped ? AppColors.amber : AppColors.green).withValues(alpha: 0.15),
+                                color:
+                                (skipped ? AppColors.amber : AppColors.green)
+                                    .withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(skipped ? Icons.skip_next_rounded : Icons.check_rounded,
-                                  size: 13, color: skipped ? AppColors.amber : AppColors.green),
+                              child: Icon(
+                                  skipped
+                                      ? Icons.skip_next_rounded
+                                      : Icons.check_rounded,
+                                  size: 13,
+                                  color: skipped
+                                      ? AppColors.amber
+                                      : AppColors.green),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Puzzle ${i + 1} · ${formatTime(time)}${skipped ? ' · skipped' : ''}',
-                                style: AppText.sans(size: 12, color: AppColors.sub),
+                                style: AppText.sans(
+                                    size: 12, color: AppColors.sub),
                               ),
                             ),
                             Text(
-                              hints == 0 ? 'No hints 🌟' : '$hints hint${hints > 1 ? 's' : ''}',
-                              style: AppText.sans(size: 11, color: hints == 0 ? AppColors.green : AppColors.muted),
+                              hints == 0
+                                  ? 'No hints 🌟'
+                                  : '$hints hint${hints > 1 ? 's' : ''}',
+                              style: AppText.sans(
+                                  size: 11,
+                                  color: hints == 0
+                                      ? AppColors.green
+                                      : AppColors.muted),
                             ),
                           ],
                         ),
@@ -1726,25 +1906,28 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(height: 6),
                 Text('$totalHints hint${totalHints != 1 ? 's' : ''} used total',
                     style: AppText.sans(size: 11, color: AppColors.muted)),
-
                 const SizedBox(height: 20),
-
-
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
                     onPressed: _seeLeaderboard,
-                    child: Text('See Leaderboard', style: AppText.sans(size: 13, weight: FontWeight.w600, color: Colors.white)),
+                    child: Text('See Leaderboard',
+                        style: AppText.sans(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: Colors.white)),
                   ),
                 ),
-
-                const SizedBox(height:5),
-
+                const SizedBox(height: 5),
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
                     onPressed: _signOut,
-                    child: Text('Sign Out', style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.red)),
+                    child: Text('Sign Out',
+                        style: AppText.sans(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: AppColors.red)),
                   ),
                 ),
               ],
@@ -1755,11 +1938,15 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _miniStat(String value, String label, Color color) => Column(children: [
-    Text(value, style: AppText.sans(size: 15, weight: FontWeight.w700, color: color)),
-    const SizedBox(height: 2),
-    Text(label, style: AppText.sans(size: 10, color: AppColors.muted, letterSpacing: 0.8)),
-  ]);
+  Widget _miniStat(String value, String label, Color color) =>
+      Column(children: [
+        Text(value,
+            style: AppText.sans(size: 15, weight: FontWeight.w700, color: color)),
+        const SizedBox(height: 2),
+        Text(label,
+            style: AppText.sans(
+                size: 10, color: AppColors.muted, letterSpacing: 0.8)),
+      ]);
 
   // ─── Control row ──────────────────────────────────────────────────────────
 
@@ -1797,7 +1984,7 @@ class _GameScreenState extends State<GameScreen> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 70, horizontal: 6,),
+          padding: const EdgeInsets.symmetric(vertical: 70, horizontal: 6),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ..._kbdRows.map(_buildKbdRow),
             const SizedBox(height: 6),
@@ -1810,12 +1997,16 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildKbdRow(List<String> keys) => Padding(
     padding: const EdgeInsets.only(bottom: 5),
-    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: keys.map(_buildKey).toList()),
+    child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: keys.map(_buildKey).toList()),
   );
 
   Widget _buildKey(String key) {
     final blocked = _inputLocked;
-    Color bg = AppColors.kbdKey, fg = AppColors.text, border = Colors.white.withValues(alpha: 0.05);
+    Color bg = AppColors.kbdKey,
+        fg = AppColors.text,
+        border = Colors.white.withValues(alpha: 0.05);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2.5),
@@ -1828,9 +2019,15 @@ class _GameScreenState extends State<GameScreen> {
           child: Container(
             width: 33,
             height: 42,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(7), border: Border.all(color: border)),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(color: border)),
             alignment: Alignment.center,
-            child: Text(key, style: AppText.mono(size: 13, weight: FontWeight.w600, color: blocked ? fg.withValues(alpha: 0.28) : fg)),
+            child: Text(key,
+                style: AppText.mono(
+                    size: 13,
+                    weight: FontWeight.w600,
+                    color: blocked ? fg.withValues(alpha: 0.28) : fg)),
           ),
         ),
       ),
@@ -1847,11 +2044,22 @@ class _GameScreenState extends State<GameScreen> {
         onTap: blocked ? null : _clearSelected,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 9),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(7), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.backspace_outlined, size: 15, color: blocked ? AppColors.muted.withValues(alpha: 0.28) : AppColors.muted),
+            Icon(Icons.backspace_outlined,
+                size: 15,
+                color: blocked
+                    ? AppColors.muted.withValues(alpha: 0.28)
+                    : AppColors.muted),
             const SizedBox(width: 6),
-            Text('Clear', style: AppText.mono(size: 13, color: blocked ? AppColors.muted.withValues(alpha: 0.28) : AppColors.muted)),
+            Text('Clear',
+                style: AppText.mono(
+                    size: 13,
+                    color: blocked
+                        ? AppColors.muted.withValues(alpha: 0.28)
+                        : AppColors.muted)),
           ]),
         ),
       ),
@@ -1859,8 +2067,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-
-// ─── LeaderboardScreen ─────────────────────────────────────────────────────
+// ─── LeaderboardScreen ────────────────────────────────────────────────────────
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -1879,12 +2086,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     super.initState();
     _fetchLeaderboard();
   }
-  void _signOut() => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+
+  Future<void> _signOut() async {
+    await signOutEverywhere();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
   Future<void> _fetchLeaderboard() async {
     try {
       final data = await supabase
           .from('calculated_leaderboard')
-          .select('full_name, time_taken, hints_used, puzzles_skipped, points, streak, rank')
+          .select(
+          'full_name, time_taken, hints_used, puzzles_skipped, points, streak, rank')
           .order('rank', ascending: true)
           .limit(50);
 
@@ -1901,6 +2116,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       });
     }
   }
+
+  TextStyle _headStyle() => AppText.sans(
+      size: 12,
+      weight: FontWeight.w700,
+      color: AppColors.muted,
+      letterSpacing: 1);
 
   @override
   Widget build(BuildContext context) {
@@ -1919,14 +2140,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.muted),
-                    onPressed: () => _signOut() ,
+                    icon: const Icon(Icons.arrow_back_rounded,
+                        color: AppColors.muted),
+                    onPressed: _signOut,
                   ),
                   Expanded(
                     child: Text(
                       'LEADERBOARD',
                       textAlign: TextAlign.center,
-                      style: AppText.mono(size: 15, weight: FontWeight.w700, letterSpacing: 3, color: AppColors.text),
+                      style: AppText.mono(
+                          size: 15,
+                          weight: FontWeight.w700,
+                          letterSpacing: 3,
+                          color: AppColors.text),
                     ),
                   ),
                   const SizedBox(width: 48),
@@ -1935,7 +2161,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             if (!_loading && _error == null && _entries.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: const BoxDecoration(
                   color: AppColors.header,
                   border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -1944,47 +2171,54 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   children: [
                     const SizedBox(width: 28),
                     Expanded(
-                      flex: 2,
-                      child: Text('NAME', style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
-                    ),
+                        flex: 2, child: Text('NAME', style: _headStyle())),
                     Expanded(
                       flex: 2,
-                      child: Text('TIME', textAlign: TextAlign.center, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('TIME',
+                          textAlign: TextAlign.center, style: _headStyle()),
                     ),
                     Expanded(
-                      child: Text('HINTS', textAlign: TextAlign.center, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('HINTS',
+                          textAlign: TextAlign.center, style: _headStyle()),
                     ),
                     Expanded(
-                      child: Text('STREAK', textAlign: TextAlign.center, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('STREAK',
+                          textAlign: TextAlign.center, style: _headStyle()),
                     ),
                     SizedBox(
                       width: 56,
-                      child: Text('POINTS', textAlign: TextAlign.right, style: AppText.sans(size: 12, weight: FontWeight.w700, color: AppColors.muted, letterSpacing: 1)),
+                      child: Text('POINTS',
+                          textAlign: TextAlign.right, style: _headStyle()),
                     ),
                   ],
                 ),
               ),
             Expanded(
               child: _loading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary))
                   : _error != null
                   ? Center(
                 child: Text('Could not load leaderboard: $_error',
-                    style: AppText.sans(size: 12, color: AppColors.red)),
+                    style:
+                    AppText.sans(size: 12, color: AppColors.red)),
               )
                   : _entries.isEmpty
                   ? Center(
                 child: Text('No results yet — be the first!',
-                    style: AppText.sans(size: 13, color: AppColors.muted)),
+                    style: AppText.sans(
+                        size: 13, color: AppColors.muted)),
               )
                   : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: _entries.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                separatorBuilder: (_, __) =>
+                const SizedBox(height: 8),
                 itemBuilder: (context, i) {
                   final entry = _entries[i];
                   final rank = entry['rank'] ?? (i + 1);
-                  final skippedCount = (entry['puzzles_skipped'] as int?) ?? 0;
+                  final skippedCount =
+                      (entry['puzzles_skipped'] as int?) ?? 0;
                   final skipped = skippedCount > 0;
 
                   final Color rankColor;
@@ -1997,18 +2231,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   } else {
                     rankColor = Colors.white;
                   }
-
-                  final beforeRank;
-                  if(rank==1){
-
-                  }
+                  final rowColor = skipped
+                      ? const Color(0xFFC97A7A)
+                      : rankColor;
 
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: skipped ? AppColors.border : AppColors.border),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: Row(
                       children: [
@@ -2018,47 +2251,66 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               style: AppText.mono(
                                   size: 13,
                                   weight: FontWeight.w700,
-                                  color: skipped ? AppColors.red : rankColor)),
+                                  color: skipped
+                                      ? AppColors.red
+                                      : rankColor)),
                         ),
                         Expanded(
                           flex: 2,
                           child: Row(
                             children: [
                               Flexible(
-                                child: Text(entry['full_name'] ?? 'Anonymous',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppText.sans(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
+                                child: Text(
+                                    entry['full_name'] ??
+                                        'Anonymous',
+                                    overflow:
+                                    TextOverflow.ellipsis,
+                                    style: AppText.sans(
+                                        size: 14,
+                                        color: rowColor)),
                               ),
                               if (skipped) ...[
                                 const SizedBox(width: 6),
-                                Icon(Icons.skip_next_rounded, size: 13, color: AppColors.red),
+                                const Icon(
+                                    Icons.skip_next_rounded,
+                                    size: 13,
+                                    color: AppColors.red),
                               ],
                             ],
                           ),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text(formatTime(entry['time_taken'] ?? 0),
+                          child: Text(
+                              formatTime(entry['time_taken'] ?? 0),
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
+                              style: AppText.mono(
+                                  size: 14, color: rowColor)),
                         ),
                         Expanded(
                           child: Text('${entry['hints_used'] ?? 0}',
                               textAlign: TextAlign.center,
-                              style: AppText.mono(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
+                              style: AppText.mono(
+                                  size: 14, color: rowColor)),
                         ),
                         Expanded(
                           child: Text(
-                            (entry['streak'] ?? 1) == 1 ? '🔥1' : '🔥${entry['streak']}',
+                            (entry['streak'] ?? 1) == 1
+                                ? '🔥1'
+                                : '🔥${entry['streak']}',
                             textAlign: TextAlign.center,
-                            style: AppText.sans(size: 14, color: skipped ? const Color(0xFFC97A7A) : rankColor),
+                            style: AppText.sans(
+                                size: 14, color: rowColor),
                           ),
                         ),
                         SizedBox(
                           width: 56,
                           child: Text('${entry['points'] ?? 0}',
                               textAlign: TextAlign.right,
-                              style: AppText.mono(size: 13, weight: FontWeight.w700, color: skipped ? const Color(0xFFC97A7A) : rankColor)),
+                              style: AppText.mono(
+                                  size: 13,
+                                  weight: FontWeight.w700,
+                                  color: rowColor)),
                         ),
                       ],
                     ),
@@ -2073,7 +2325,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 }
 
-
 // ─── Streak badge ─────────────────────────────────────────────────────────────
 
 class _StreakBadge extends StatelessWidget {
@@ -2085,7 +2336,8 @@ class _StreakBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = streak == 1 ? '1 day streak' : '$streak day streak';
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: large ? 14 : 9, vertical: large ? 8 : 5),
+      padding: EdgeInsets.symmetric(
+          horizontal: large ? 14 : 9, vertical: large ? 8 : 5),
       decoration: BoxDecoration(
         color: AppColors.amber.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(large ? 14 : 22),
@@ -2096,7 +2348,8 @@ class _StreakBadge extends StatelessWidget {
         SizedBox(width: large ? 6 : 3),
         Text(
           large ? label : '$streak',
-          style: AppText.mono(size: large ? 13 : 13, weight: FontWeight.w700, color: AppColors.amber),
+          style: AppText.mono(
+              size: 13, weight: FontWeight.w700, color: AppColors.amber),
         ),
       ]),
     );
@@ -2109,7 +2362,8 @@ class _TimerBadge extends StatelessWidget {
   final int timeElapsed;
   final bool paused;
   final VoidCallback onToggle;
-  const _TimerBadge({required this.timeElapsed, required this.paused, required this.onToggle});
+  const _TimerBadge(
+      {required this.timeElapsed, required this.paused, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
@@ -2125,7 +2379,9 @@ class _TimerBadge extends StatelessWidget {
         const SizedBox(width: 4),
         SizedBox(
           width: 42,
-          child: Text(formatTime(timeElapsed), style: AppText.mono(size: 13, weight: FontWeight.w700, color: AppColors.amber)),
+          child: Text(formatTime(timeElapsed),
+              style: AppText.mono(
+                  size: 13, weight: FontWeight.w700, color: AppColors.amber)),
         ),
         GestureDetector(
           onTap: onToggle,
@@ -2133,11 +2389,19 @@ class _TimerBadge extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: paused ? AppColors.primary.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.06),
+              color: paused
+                  ? AppColors.primary.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: paused ? AppColors.primary.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.09)),
+              border: Border.all(
+                  color: paused
+                      ? AppColors.primary.withValues(alpha: 0.35)
+                      : Colors.white.withValues(alpha: 0.09)),
             ),
-            child: Icon(paused ? Icons.play_arrow_rounded : Icons.pause_rounded, size: 14, color: paused ? AppColors.primary : AppColors.muted),
+            child: Icon(
+                paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                size: 14,
+                color: paused ? AppColors.primary : AppColors.muted),
           ),
         ),
       ]),
@@ -2150,7 +2414,11 @@ class _TimerBadge extends StatelessWidget {
 class _MenuButton extends StatelessWidget {
   final String fullName, username;
   final VoidCallback onHowTo, onSignOut;
-  const _MenuButton({required this.fullName, required this.username, required this.onHowTo, required this.onSignOut});
+  const _MenuButton(
+      {required this.fullName,
+        required this.username,
+        required this.onHowTo,
+        required this.onSignOut});
 
   @override
   Widget build(BuildContext context) {
@@ -2163,37 +2431,49 @@ class _MenuButton extends StatelessWidget {
         }
       },
       color: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.border)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border)),
       itemBuilder: (_) => [
         PopupMenuItem(
           enabled: false,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(fullName, style: AppText.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
-            Text('@$username', style: AppText.sans(size: 11, color: AppColors.muted)),
+            Text(fullName,
+                style: AppText.sans(
+                    size: 13, weight: FontWeight.w600, color: AppColors.text)),
+            Text('@$username',
+                style: AppText.sans(size: 11, color: AppColors.muted)),
           ]),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'howto',
           child: Row(children: [
-            const SizedBox(width: 20, child: Text('?', style: TextStyle(fontSize: 14))),
+            const SizedBox(
+                width: 20, child: Text('?', style: TextStyle(fontSize: 14))),
             const SizedBox(width: 10),
-            Text('How to Play', style: AppText.sans(size: 13, color: AppColors.text)),
+            Text('How to Play',
+                style: AppText.sans(size: 13, color: AppColors.text)),
           ]),
         ),
         PopupMenuItem(
           value: 'out',
           child: Row(children: [
-            const SizedBox(width: 20, child: Text('→', style: TextStyle(fontSize: 14))),
+            const SizedBox(
+                width: 20, child: Text('→', style: TextStyle(fontSize: 14))),
             const SizedBox(width: 10),
-            Text('Sign Out', style: AppText.sans(size: 13, color: AppColors.red)),
+            Text('Sign Out',
+                style: AppText.sans(size: 13, color: AppColors.red)),
           ]),
         ),
       ],
       child: Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(9), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: AppColors.border)),
         child: const Icon(Icons.menu_rounded, size: 15, color: AppColors.muted),
       ),
     );
@@ -2208,7 +2488,12 @@ class _PillButton extends StatelessWidget {
   final Color color;
   final VoidCallback? onTap;
   final bool disabled;
-  const _PillButton({required this.label, required this.icon, required this.color, this.onTap, this.disabled = false});
+  const _PillButton(
+      {required this.label,
+        required this.icon,
+        required this.color,
+        this.onTap,
+        this.disabled = false});
 
   @override
   Widget build(BuildContext context) {
@@ -2222,11 +2507,15 @@ class _PillButton extends StatelessWidget {
           onTap: disabled ? null : onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withValues(alpha: 0.22))),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: color.withValues(alpha: 0.22))),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(icon, size: 13, color: color),
               const SizedBox(width: 5),
-              Text(label, style: AppText.sans(size: 12, weight: FontWeight.w600, color: color)),
+              Text(label,
+                  style: AppText.sans(
+                      size: 12, weight: FontWeight.w600, color: color)),
             ]),
           ),
         ),
