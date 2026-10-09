@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+
 const String _supabaseUrl = 'https://pnczxyjpydrdochlzclt.supabase.co';
 const String _supabaseAnonKey =
     'sb_publishable_yXDnqcTlrGGb8BppNP-6vw_rONAlZuO';
@@ -15,6 +16,7 @@ const String _supabaseAnonKey =
 // Supabase Google provider).
 const String webClientId =
     '2168155933-279hn1tehe64bondv9vcfgsm39g317vd.apps.googleusercontent.com';
+const String allowedEmailDomain = 'inspiritvision.com';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +29,9 @@ final supabase = Supabase.instance.client;
 // ─── Google Sign-In (google_sign_in 6.x API) ─────────────────────────────────
 // serverClientId is not supported on web, so the mobile instance is only
 // created off-web. On web we use Supabase's OAuth redirect instead.
-final GoogleSignIn? _googleSignIn =
-kIsWeb ? null : GoogleSignIn(serverClientId: webClientId);
-
+final GoogleSignIn? _googleSignIn = kIsWeb
+    ? null
+    : GoogleSignIn(serverClientId: webClientId, hostedDomain: allowedEmailDomain);
 Future<void> signOutEverywhere() async {
   try {
     await supabase.auth.signOut();
@@ -640,7 +642,10 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       if (kIsWeb) {
         // Redirects to Google and back; _completeGoogleLogin runs on return.
-        await supabase.auth.signInWithOAuth(OAuthProvider.google);
+        await supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          queryParams: {'hd': allowedEmailDomain},
+        );
         return;
       }
 
@@ -688,6 +693,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = supabase.auth.currentUser;
       if (user == null) {
         throw StateError('Google sign-in did not complete.');
+      }
+      final email = (user.email ?? '').toLowerCase();
+      if (!email.endsWith('@$allowedEmailDomain')) {
+        throw Exception('Only @$allowedEmailDomain accounts can sign in with Google.');
       }
 
       final meta = user.userMetadata ?? {};
@@ -908,7 +917,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: OutlinedButton.icon(
               onPressed: _loading ? null : _handleGoogleSignIn,
               icon: const Icon(Icons.login, size: 18),
-              label: const Text('Sign in with Google(Use company email address)'),
+              label: const Text('Sign in with Google'),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.border),
                 foregroundColor: AppColors.text,
