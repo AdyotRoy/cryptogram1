@@ -31,7 +31,11 @@ final supabase = Supabase.instance.client;
 // created off-web. On web we use Supabase's OAuth redirect instead.
 final GoogleSignIn? _googleSignIn = kIsWeb
     ? null
-    : GoogleSignIn(serverClientId: webClientId, hostedDomain: allowedEmailDomain);
+    : GoogleSignIn(
+  serverClientId: webClientId,
+  clientId: webClientId,
+  hostedDomain: allowedEmailDomain,
+);
 Future<void> signOutEverywhere() async {
   try {
     await supabase.auth.signOut();
@@ -56,6 +60,15 @@ class CryptogramEngine {
 
   CryptogramEngine(this.plainText) {
     cipherMap = _generateDerangedMap();
+    encryptedText = _encrypt(plainText);
+  }
+
+  /// Recreates the exact cipher used by an active session after a refresh.
+  CryptogramEngine.restore(
+      this.plainText,
+      Map<String, String> savedCipherMap,
+      ) {
+    cipherMap = Map<String, String>.from(savedCipherMap);
     encryptedText = _encrypt(plainText);
   }
 
@@ -420,17 +433,20 @@ class MockSentenceService {
     "keep shining and the world will notice",
   ];
 
-  /// Returns the puzzle(s) for the current date (same for everyone).
-  static List<String> getDailyPuzzles() {
-    final now = DateTime.now();
-    final today = DateTime.utc(now.year, now.month, now.day);
-    final dayNumber = today.difference(DateTime.utc(2026, 1, 1)).inDays;
+  /// Returns the puzzle for a date, using UTC so the app and database agree.
+  static String getPuzzleForDate(DateTime date) {
+    final utc = date.toUtc();
+    final day = DateTime.utc(utc.year, utc.month, utc.day);
+    final dayNumber = day.difference(DateTime.utc(2026, 1, 1)).inDays;
 
-    // Fixed seed -> the same shuffled order for everyone, every day
+    // Fixed seed -> the same shuffled order for everyone, every day.
     final shuffled = List<String>.from(_sentencePool)..shuffle(Random(42));
-
-    return [shuffled[dayNumber % shuffled.length]];
+    final index = ((dayNumber % shuffled.length) + shuffled.length) % shuffled.length;
+    return shuffled[index];
   }
+
+  /// Returns today's UTC puzzle. Existing sessions retain their saved sentence.
+  static List<String> getDailyPuzzles() => [getPuzzleForDate(DateTime.now().toUtc())];
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -728,7 +744,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Try to log in with the given credentials first.
       Future<dynamic> tryLogin() => supabase.rpc(
-        'login_user',
+        'authenticate_password_user',
         params: {
           'p_email': email,
           'p_password': password,
@@ -747,7 +763,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // No matching account yet (or a transient hiccup) — try creating one.
         try {
           result = await supabase.rpc(
-            'register_user',
+            'create_password_user',
             params: {
               'p_full_name': fullName,
               'p_email': email,
@@ -902,20 +918,20 @@ class _LoginScreenState extends State<LoginScreen> {
       final googleName = (meta['full_name'] ?? meta['name'] ?? '').toString();
 
       final result = await supabase.rpc(
-        'login_google_user',
+        'resolve_google_user',
         params: {'p_full_name': googleName},
       );
 
       final dynamic row =
       (result is List && result.isNotEmpty) ? result.first : result;
       if (row is! Map) {
-        throw StateError('Unexpected response from login_google_user.');
+        throw StateError('Unexpected response from resolve_google_user.');
       }
 
       final userId = (row['user_id'] ?? row['id']).toString();
       if (int.tryParse(userId) == null) {
         throw StateError(
-            'login_google_user must return user_accounts.user_id.');
+            'resolve_google_user must return user_accounts.user_id.');
       }
 
       // Same once-a-day limit as the password login.
@@ -937,12 +953,15 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       await signOutEverywhere();
-      _completingGoogle = false;
       if (!mounted) return;
       setState(() {
         _loading = false;
         _error = _friendlySupabaseError(e);
       });
+    } finally {
+      // Always clear the one-time in-flight guard so a later auth state event,
+      // or a sign-out/sign-in cycle, can retry cleanly.
+      _completingGoogle = false;
     }
   }
 
@@ -1224,43 +1243,256 @@ class _GameScreenState extends State<GameScreen> {
   bool get _isLastPuzzle => _puzzleIndex == dailySentences.length - 1;
 
   late CryptogramEngine _engine;
-
-  // cipher letter (UPPER) -> plain letter (UPPER)
+  // Cipher letter (UPPER) -> plain letter (UPPER).
   late Map<String, String> _decodeMap;
 
-  // Per-puzzle UI state (reset on advance)
   final Map<String, String> _userMap = {};
   String? _selectedCipher;
   final Set<String> _hintedLetters = {};
   int _hintsLeft = 3;
   bool _solved = false;
+  bool _currentPuzzleSkipped = false;
 
-  // Timers: one running total for the session, one for the current puzzle
   int _timeElapsed = 0;
   int _puzzleTimeElapsed = 0;
-  bool _paused = false;
 
   int? _currentStreak;
-
   Timer? _timer;
   bool _sessionComplete = false;
+  bool _initializing = true;
+  bool _finishing = false;
+  String? _sessionLoadError;
+  String _completionReason = 'solved';
+
+  int? _sessionId;
+  DateTime? _sessionStartedAt;
+  Future<void> _saveQueue = Future<void>.value();
+  bool _restoringState = false;
+
   final ScrollController _scrollController = ScrollController();
   final FocusNode _keyboardFocusNode = FocusNode();
 
-  // Per-puzzle summary tracking (index-aligned with dailySentences)
   final List<int> _hintsUsedPerPuzzle = [];
   final List<int> _puzzleTimes = [];
   final List<bool> _puzzleWasSkipped = [];
 
-  bool get _inputLocked => _paused || _solved || _sessionComplete;
+  bool get _inputLocked =>
+      _solved || _sessionComplete || _finishing || _initializing;
 
   @override
   void initState() {
     super.initState();
     dailySentences = MockSentenceService.getDailyPuzzles().take(1).toList();
-    _loadPuzzle(_puzzleIndex);
-    _startTimer();
+    _loadPuzzle(0);
+    unawaited(_initializeSession());
     unawaited(_fetchStreak());
+  }
+
+  int _elapsedSinceStart() {
+    final startedAt = _sessionStartedAt;
+    if (startedAt == null) return _timeElapsed;
+    final seconds = DateTime.now().toUtc().difference(startedAt.toUtc()).inSeconds;
+    return seconds < 0 ? 0 : seconds;
+  }
+
+  void _refreshElapsedTime() {
+    _timeElapsed = _elapsedSinceStart();
+    // The current implementation runs one daily puzzle per session.
+    _puzzleTimeElapsed = _timeElapsed;
+  }
+
+  Future<void> _initializeSession() async {
+    try {
+      final userId = int.tryParse(widget.userId);
+      if (userId == null) {
+        throw StateError('Supabase returned an invalid user id.');
+      }
+
+      // claim_daily_puzzle creates this row on first entry and returns true for
+      // an already-open row, including one opened on a previous day.
+      final dynamic found = await supabase.rpc(
+        'get_active_game_session',
+        params: {'p_user_id': userId},
+      );
+
+      if (found == null) {
+        throw StateError(
+          'No active session was found. Run the session_lifecycle.sql script in Supabase, then sign in again.',
+        );
+      }
+
+      final row = Map<String, dynamic>.from(found as Map);
+      _sessionId = int.tryParse(row['id'].toString());
+      if (_sessionId == null) {
+        throw StateError('Supabase returned an invalid session id.');
+      }
+      _sessionStartedAt = DateTime.parse(row['started_at'].toString()).toUtc();
+
+      final rawState = row['puzzle_state'];
+      final state = rawState is Map
+          ? Map<String, dynamic>.from(rawState)
+          : <String, dynamic>{};
+
+      final sessionDate = DateTime.tryParse(
+        (row['game_id'] ?? '').toString().replaceFirst('daily-', ''),
+      ) ??
+          _sessionStartedAt!;
+      final savedSentence = state['sentence']?.toString();
+      dailySentences = [
+        (savedSentence != null && savedSentence.trim().isNotEmpty)
+            ? savedSentence
+            : MockSentenceService.getPuzzleForDate(sessionDate),
+      ];
+      _puzzleIndex = 0;
+
+      _restorePuzzleState(state);
+      _refreshElapsedTime();
+
+      // New sessions have an empty puzzle_state. Save the generated cipher
+      // immediately so the exact same puzzle can be restored after refresh.
+      final cipherState = state['cipher_map'];
+      if (cipherState is! Map || cipherState.isEmpty) {
+        await _savePuzzleState();
+      }
+    } catch (e) {
+      debugPrint('Session initialization failed: $e');
+      _sessionLoadError = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      if (mounted) setState(() => _initializing = false);
+    }
+
+    if (mounted && _sessionLoadError == null) {
+      _startTimer();
+      // If the saved guesses already solve the puzzle but the previous finish
+      // request failed, retry the normal solve/close flow on resume.
+      _checkSolved();
+    }
+  }
+
+  void _restorePuzzleState(Map<String, dynamic> state) {
+    _restoringState = true;
+    try {
+      final rawCipherMap = state['cipher_map'];
+      final savedCipherMap = rawCipherMap is Map
+          ? rawCipherMap.map((key, value) => MapEntry(
+          key.toString().toLowerCase(), value.toString().toLowerCase()))
+          : <String, String>{};
+
+      if (savedCipherMap.isNotEmpty) {
+        _engine = CryptogramEngine.restore(
+          dailySentences[_puzzleIndex],
+          savedCipherMap,
+        );
+      } else {
+        _loadPuzzle(_puzzleIndex);
+      }
+
+      _decodeMap = {
+        for (final entry in _engine.cipherMap.entries)
+          entry.value.toUpperCase(): entry.key.toUpperCase(),
+      };
+
+      _userMap
+        ..clear()
+        ..addAll(_stringMap(state['user_map']));
+      _hintedLetters
+        ..clear()
+        ..addAll(_stringList(state['hinted_letters']));
+      _hintsLeft = ((state['hints_left'] as num?)?.toInt() ?? 3).clamp(0, 3).toInt();
+      _selectedCipher = state['selected_cipher']?.toString();
+      _solved = state['solved'] == true;
+      _currentPuzzleSkipped = state['current_puzzle_skipped'] == true;
+
+      _hintsUsedPerPuzzle
+        ..clear()
+        ..addAll(_intList(state['hints_used_per_puzzle']));
+      _puzzleTimes
+        ..clear()
+        ..addAll(_intList(state['puzzle_times']));
+      _puzzleWasSkipped
+        ..clear()
+        ..addAll(_boolList(state['puzzle_was_skipped']));
+
+      _puzzleTimeElapsed = (state['puzzle_time_elapsed'] as num?)?.toInt() ?? 0;
+    } finally {
+      _restoringState = false;
+    }
+  }
+
+  Map<String, String> _stringMap(dynamic value) {
+    if (value is! Map) return <String, String>{};
+    return value.map((key, item) => MapEntry(
+        key.toString().toUpperCase(), item.toString().toUpperCase()));
+  }
+
+  List<String> _stringList(dynamic value) => value is List
+      ? value.map((item) => item.toString().toUpperCase()).toList()
+      : <String>[];
+
+  List<int> _intList(dynamic value) => value is List
+      ? value.whereType<num>().map((item) => item.toInt()).toList()
+      : <int>[];
+
+  List<bool> _boolList(dynamic value) => value is List
+      ? value.map((item) => item == true).toList()
+      : <bool>[];
+
+  Map<String, dynamic> _buildPuzzleState({String? completionReason}) {
+    return <String, dynamic>{
+      'version': 1,
+      'sentence': dailySentences[_puzzleIndex],
+      'puzzle_index': _puzzleIndex,
+      'cipher_map': _engine.cipherMap,
+      'user_map': _userMap,
+      'hinted_letters': _hintedLetters.toList(),
+      'hints_left': _hintsLeft,
+      'selected_cipher': _selectedCipher,
+      'solved': _solved,
+      'current_puzzle_skipped': _currentPuzzleSkipped,
+      'puzzle_time_elapsed': _puzzleTimeElapsed,
+      'hints_used_per_puzzle': _hintsUsedPerPuzzle,
+      'puzzle_times': _puzzleTimes,
+      'puzzle_was_skipped': _puzzleWasSkipped,
+      if (completionReason != null) 'completionReason': completionReason,
+    };
+  }
+
+  Future<void> _savePuzzleState() {
+    final sessionId = _sessionId;
+    final userId = int.tryParse(widget.userId);
+    if (sessionId == null || userId == null || _sessionComplete || _finishing) {
+      return Future<void>.value();
+    }
+    if (_restoringState) return Future<void>.value();
+
+    final stateSnapshot = _buildPuzzleState();
+    final totalHints = _hintsUsedPerPuzzle.fold<int>(0, (sum, value) => sum + value);
+    final totalSkipped = _puzzleWasSkipped.where((skipped) => skipped).length;
+
+    final pending = _saveQueue.catchError((Object _) {}).then((_) async {
+      final result = await supabase.rpc(
+        'save_game_session_progress',
+        params: {
+          'p_session_id': sessionId,
+          'p_user_id': userId,
+          'p_puzzle_state': stateSnapshot,
+          'p_hints_used': totalHints,
+          'p_puzzles_skipped': totalSkipped,
+        },
+      );
+      if (result != true) {
+        throw StateError('The active session could not be saved.');
+      }
+    });
+    _saveQueue = pending;
+    return pending;
+  }
+
+  void _queuePuzzleSave() {
+    if (_restoringState || _initializing || _sessionComplete || _finishing) return;
+    unawaited(_savePuzzleState().catchError((Object error) {
+      debugPrint('Session autosave error: $error');
+    }));
   }
 
   /// Loads the current streak for this user from user_accounts.
@@ -1301,6 +1533,7 @@ class _GameScreenState extends State<GameScreen> {
     _hintedLetters.clear();
     _hintsLeft = 3;
     _solved = false;
+    _currentPuzzleSkipped = false;
     _puzzleTimeElapsed = 0;
   }
 
@@ -1318,27 +1551,15 @@ class _GameScreenState extends State<GameScreen> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_paused || !mounted) return;
-      setState(() {
-        if (!_sessionComplete) _timeElapsed++;
-        if (!_solved) _puzzleTimeElapsed++;
-      });
+      if (!mounted || _initializing || _sessionComplete || _finishing) return;
+      setState(_refreshElapsedTime);
     });
-  }
-
-  void _togglePause() {
-    if (!mounted || _sessionComplete) return;
-    setState(() => _paused = !_paused);
   }
 
   // ─── Letter assignment ────────────────────────────────────────────────────
 
   void _assignLetter(String plain) {
-    if (_paused) {
-      _showToast('Resume the timer first');
-      return;
-    }
-    if (_solved || _sessionComplete) return;
+    if (_solved || _sessionComplete || _finishing || _initializing) return;
     if (_selectedCipher == null) {
       _showToast('Select a letter first');
       return;
@@ -1351,6 +1572,7 @@ class _GameScreenState extends State<GameScreen> {
 
     _checkSolved();
     _advanceSelection();
+    _queuePuzzleSave();
   }
 
   void _clearSelected() {
@@ -1358,36 +1580,38 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _userMap.remove(_selectedCipher);
     });
+    _queuePuzzleSave();
   }
 
   void _checkSolved() {
-    if (_solved || _sessionComplete) return;
+    if (_sessionComplete || _finishing || _initializing) return;
+    if (_solved) {
+      if (_isLastPuzzle) {
+        unawaited(_submitSessionResults(completionReason: 'solved'));
+      }
+      return;
+    }
 
     final lowerGuesses = <String, String>{
-      for (final e in _userMap.entries)
-        e.key.toLowerCase(): e.value.toLowerCase(),
+      for (final entry in _userMap.entries)
+        entry.key.toLowerCase(): entry.value.toLowerCase(),
     };
-
     if (!_engine.isSolved(lowerGuesses)) return;
 
+    _currentPuzzleSkipped = false;
     _recordPuzzleResult(skipped: false);
-
     if (!mounted) return;
 
-    setState(() {
-      _solved = true;
-      if (_isLastPuzzle) {
-        _sessionComplete = true;
-      }
-    });
-
+    setState(() => _solved = true);
     if (_isLastPuzzle) {
-      _timer?.cancel();
-      unawaited(_submitSessionResults());
+      unawaited(_submitSessionResults(completionReason: 'solved'));
+    } else {
+      _queuePuzzleSave();
     }
   }
 
   void _advanceSelection() {
+    if (_solved || _sessionComplete || _finishing) return;
     final current = _selectedCipher;
     if (current == null) return;
 
@@ -1415,49 +1639,65 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  /// Submits the final session totals to Supabase
-  Future<void> _submitSessionResults() async {
+  /// Closes the existing session. Solving the puzzle closes it automatically;
+  /// pressing Submit closes it even when the user has not solved it.
+  Future<void> _submitSessionResults({String? completionReason}) async {
+    if (_sessionComplete || _finishing || _sessionId == null) return;
+
+    final reason = completionReason ?? (_solved ? 'solved' : 'submitted');
+    _refreshElapsedTime();
+    if (_puzzleTimes.length <= _puzzleIndex) {
+      _recordPuzzleResult(skipped: !_solved);
+    }
+
+    if (mounted) setState(() => _finishing = true);
+
     try {
-      final totalHints = _hintsUsedPerPuzzle.fold<int>(0, (sum, h) => sum + h);
-      final totalSkipped = _puzzleWasSkipped.where((skipped) => skipped).length;
-      final rawPoints = 1000 - _timeElapsed - (100 * totalHints);
-      final points = rawPoints < 0 ? 0 : rawPoints;
-
-      final userIdInt = int.tryParse(widget.userId);
-      if (userIdInt == null) {
-        debugPrint('Warning: could not parse userId "${widget.userId}" — '
-            'session will be saved without a user_id, so streak will not update.');
-      }
-
-      await supabase.from('game_sessions').insert({
-        if (userIdInt != null) 'user_id': userIdInt,
-        'full_name': widget.fullName,
-        'time_taken': _timeElapsed,
-        'hints_used': totalHints,
-        'points': points,
-        'puzzles_skipped': totalSkipped,
+      // Wait for any earlier autosaves before writing the final state.
+      await _saveQueue.catchError((Object error) {
+        debugPrint('A previous autosave failed before session closure: $error');
       });
 
-      await _fetchStreak();
+      _refreshElapsedTime();
+      final totalHints = _hintsUsedPerPuzzle.fold<int>(0, (sum, h) => sum + h);
+      final totalSkipped = _puzzleWasSkipped.where((skipped) => skipped).length;
+      final state = _buildPuzzleState(completionReason: reason);
+      final userIdInt = int.tryParse(widget.userId);
+      if (userIdInt == null) throw StateError('Invalid user id.');
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session saved successfully!'),
-            backgroundColor: AppColors.green,
-          ),
-        );
+      final result = await supabase.rpc(
+        'finish_game_session',
+        params: {
+          'p_session_id': _sessionId,
+          'p_user_id': userIdInt,
+          'p_completion_reason': reason,
+          'p_puzzle_state': state,
+          'p_hints_used': totalHints,
+          'p_puzzles_skipped': totalSkipped,
+        },
+      );
+      if (result != true) {
+        throw StateError('This session is no longer active. Refresh and sign in again.');
       }
+
+      _timer?.cancel();
+      if (!mounted) return;
+      setState(() {
+        _timeElapsed = _elapsedSinceStart();
+        _puzzleTimeElapsed = _timeElapsed;
+        _sessionComplete = true;
+        _completionReason = reason;
+        _finishing = false;
+      });
+      await _fetchStreak();
+      _showToast(reason == 'solved'
+          ? 'Puzzle solved — session closed.'
+          : 'Session submitted and closed.');
     } catch (e) {
-      debugPrint('Database Error: $e');
+      debugPrint('Session closure failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save session: $e'),
-            backgroundColor: AppColors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+        setState(() => _finishing = false);
+        _showToast('Could not close session: $e');
       }
     }
   }
@@ -1465,20 +1705,17 @@ class _GameScreenState extends State<GameScreen> {
   // ─── Advance to next puzzle ───────────────────────────────────────────────
 
   void _nextPuzzle() {
-    if (!_solved || _isLastPuzzle) return;
+    if (!_solved || _isLastPuzzle || _finishing || _sessionComplete) return;
     setState(() {
       _puzzleIndex++;
       _loadPuzzle(_puzzleIndex);
     });
+    _queuePuzzleSave();
   }
 
   // ─── Skip ─────────────────────────────────────────────────────────────────
   void _confirmSkip() {
-    if (_paused) {
-      _showToast('Resume the timer first');
-      return;
-    }
-    if (_solved || _sessionComplete) return;
+    if (_solved || _sessionComplete || _finishing) return;
 
     showDialog(
       context: context,
@@ -1558,37 +1795,30 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _skipPuzzle() {
-    if (_paused) {
-      _showToast('Resume the timer first');
-      return;
-    }
-    if (_solved || _sessionComplete) return;
-
-    _recordPuzzleResult(skipped: true);
-    _showToast('Puzzle skipped');
+    if (_solved || _sessionComplete || _finishing) return;
 
     if (_isLastPuzzle) {
-      _timer?.cancel();
-      if (mounted) {
-        setState(() => _sessionComplete = true);
-      }
-      unawaited(_submitSessionResults());
-    } else {
-      setState(() {
-        _puzzleIndex++;
-        _loadPuzzle(_puzzleIndex);
-      });
+      // With one daily puzzle there is nowhere else to advance to. Mark the
+      // intent to skip, but keep the session active and the clock running.
+      setState(() => _currentPuzzleSkipped = true);
+      _queuePuzzleSave();
+      _showToast('Puzzle skipped. Submit to close the session, or keep solving.');
+      return;
     }
+
+    _recordPuzzleResult(skipped: true);
+    setState(() {
+      _puzzleIndex++;
+      _loadPuzzle(_puzzleIndex);
+    });
+    _queuePuzzleSave();
+    _showToast('Puzzle skipped');
   }
 
   // ─── Hint ─────────────────────────────────────────────────────────────────
 
   void _useHint() {
-    if (_paused) {
-      _showToast('Resume the timer first');
-      return;
-    }
-    if (_solved || _sessionComplete) return;
+    if (_solved || _sessionComplete || _finishing) return;
     if (_hintsLeft <= 0) {
       _showToast('No hints remaining');
       return;
@@ -1617,6 +1847,7 @@ class _GameScreenState extends State<GameScreen> {
 
     _showToast('Hint: $pick = $correct');
     _checkSolved();
+    _queuePuzzleSave();
   }
 
   // ─── Toast ────────────────────────────────────────────────────────────────
@@ -1654,6 +1885,52 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_initializing) {
+      return const Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    if (_sessionLoadError != null) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.red, size: 36),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Could not restore your session',
+                    style: AppText.sans(size: 18, weight: FontWeight.w700),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _sessionLoadError!,
+                    style: AppText.sans(size: 12, color: AppColors.muted),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton(
+                    onPressed: _signOut,
+                    child: const Text('Return to sign in'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return KeyboardListener(
       focusNode: _keyboardFocusNode,
       autofocus: true,
@@ -1705,11 +1982,7 @@ class _GameScreenState extends State<GameScreen> {
               border: Border(bottom: BorderSide(color: AppColors.border))),
           child: Row(
             children: [
-              _TimerBadge(
-                timeElapsed: _puzzleTimeElapsed,
-                paused: _paused,
-                onToggle: _togglePause,
-              ),
+              _TimerBadge(timeElapsed: _puzzleTimeElapsed),
               Expanded(
                 child: Text(
                   'DAILY CRYPTOGRAM',
@@ -1839,9 +2112,7 @@ class _GameScreenState extends State<GameScreen> {
 
                   // Cipher words
                   ImageFiltered(
-                    imageFilter: _paused
-                        ? ImageFilter.blur(sigmaX: 10, sigmaY: 10)
-                        : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                    imageFilter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                     child: Wrap(
                       spacing: 16,
                       runSpacing: 20,
@@ -1873,32 +2144,6 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
         ),
-        if (_paused)
-          Positioned.fill(
-            child: Center(
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.surface.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('⏸', style: TextStyle(fontSize: 26)),
-                  const SizedBox(height: 6),
-                  Text('Game Paused',
-                      style: AppText.sans(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: AppColors.sub)),
-                  const SizedBox(height: 3),
-                  Text('Tap ▶ to resume',
-                      style: AppText.sans(size: 11, color: AppColors.muted)),
-                ]),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -1936,9 +2181,10 @@ class _GameScreenState extends State<GameScreen> {
     return GestureDetector(
       onTap: _inputLocked
           ? null
-          : () => setState(() {
-        _selectedCipher = ch;
-      }),
+          : () {
+        setState(() => _selectedCipher = ch);
+        _queuePuzzleSave();
+      },
       child: AbsorbPointer(
         absorbing: _inputLocked,
         child: SizedBox(
@@ -2100,8 +2346,6 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildAllSolvedOverlay() {
     final totalHints = _hintsUsedPerPuzzle.fold<int>(0, (a, b) => a + b);
     final firstName = widget.fullName.split(' ').first;
-    final anySkipped = _puzzleWasSkipped.contains(true);
-
     return Container(
       color: AppColors.bg.withValues(alpha: 0.9),
       child: Center(
@@ -2122,17 +2366,24 @@ class _GameScreenState extends State<GameScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(anySkipped ? '🏁' : '🎉',
+                Text(_completionReason == 'solved' ? '🎉' : '🏁',
                     style: const TextStyle(fontSize: 50)),
                 const SizedBox(height: 10),
-                Text('All Done, $firstName!',
+                Text(_completionReason == 'solved'
+                    ? 'Puzzle Solved, $firstName!'
+                    : 'Session Submitted, $firstName!',
                     style: AppText.mono(
                         size: 19,
                         weight: FontWeight.w700,
                         color: AppColors.green)),
                 const SizedBox(height: 4),
-                Text('You finished the puzzle',
-                    style: AppText.sans(size: 12, color: AppColors.muted)),
+                Text(
+                  _completionReason == 'solved'
+                      ? 'Your puzzle is complete.'
+                      : 'Your session has been submitted and closed.',
+                  textAlign: TextAlign.center,
+                  style: AppText.sans(size: 12, color: AppColors.muted),
+                ),
                 if (_currentStreak != null) ...[
                   const SizedBox(height: 12),
                   _StreakBadge(streak: _currentStreak!, large: true),
@@ -2281,6 +2532,14 @@ class _GameScreenState extends State<GameScreen> {
             color: AppColors.muted,
             disabled: _inputLocked,
             onTap: _confirmSkip,
+          ),
+          const SizedBox(width: 8),
+          _PillButton(
+            label: _finishing ? 'Submitting' : 'Submit',
+            icon: Icons.check_circle_outline_rounded,
+            color: AppColors.green,
+            disabled: _finishing || _sessionComplete || _initializing,
+            onTap: () => _submitSessionResults(),
           ),
         ],
       ),
@@ -2671,15 +2930,12 @@ class _StreakBadge extends StatelessWidget {
 
 class _TimerBadge extends StatelessWidget {
   final int timeElapsed;
-  final bool paused;
-  final VoidCallback onToggle;
-  const _TimerBadge(
-      {required this.timeElapsed, required this.paused, required this.onToggle});
+  const _TimerBadge({required this.timeElapsed});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(left: 11, right: 5, top: 5, bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.amber.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(22),
@@ -2693,27 +2949,6 @@ class _TimerBadge extends StatelessWidget {
           child: Text(formatTime(timeElapsed),
               style: AppText.mono(
                   size: 13, weight: FontWeight.w700, color: AppColors.amber)),
-        ),
-        GestureDetector(
-          onTap: onToggle,
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: paused
-                  ? AppColors.primary.withValues(alpha: 0.18)
-                  : Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                  color: paused
-                      ? AppColors.primary.withValues(alpha: 0.35)
-                      : Colors.white.withValues(alpha: 0.09)),
-            ),
-            child: Icon(
-                paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                size: 14,
-                color: paused ? AppColors.primary : AppColors.muted),
-          ),
         ),
       ]),
     );
