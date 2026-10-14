@@ -31,11 +31,7 @@ final supabase = Supabase.instance.client;
 // created off-web. On web we use Supabase's OAuth redirect instead.
 final GoogleSignIn? _googleSignIn = kIsWeb
     ? null
-    : GoogleSignIn(
-  serverClientId: webClientId,
-  clientId: webClientId,
-  hostedDomain: allowedEmailDomain,
-);
+    : GoogleSignIn(serverClientId: webClientId, hostedDomain: allowedEmailDomain);
 Future<void> signOutEverywhere() async {
   try {
     await supabase.auth.signOut();
@@ -953,15 +949,12 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       await signOutEverywhere();
+      _completingGoogle = false;
       if (!mounted) return;
       setState(() {
         _loading = false;
         _error = _friendlySupabaseError(e);
       });
-    } finally {
-      // Always clear the one-time in-flight guard so a later auth state event,
-      // or a sign-out/sign-in cycle, can retry cleanly.
-      _completingGoogle = false;
     }
   }
 
@@ -1265,6 +1258,7 @@ class _GameScreenState extends State<GameScreen> {
   String _completionReason = 'solved';
 
   int? _sessionId;
+  String? _gameId;
   DateTime? _sessionStartedAt;
   Future<void> _saveQueue = Future<void>.value();
   bool _restoringState = false;
@@ -1323,6 +1317,7 @@ class _GameScreenState extends State<GameScreen> {
 
       final row = Map<String, dynamic>.from(found as Map);
       _sessionId = int.tryParse(row['id'].toString());
+      _gameId = row['game_id']?.toString();
       if (_sessionId == null) {
         throw StateError('Supabase returned an invalid session id.');
       }
@@ -1678,6 +1673,21 @@ class _GameScreenState extends State<GameScreen> {
       );
       if (result != true) {
         throw StateError('This session is no longer active. Refresh and sign in again.');
+      }
+
+      // Capture the daily top-10 after this session's final score has been
+      // committed. This RPC is intentionally best-effort: a leaderboard error
+      // must not make a successfully closed session appear to have failed.
+      final gameId = _gameId;
+      if (gameId != null && gameId.trim().isNotEmpty) {
+        try {
+          await supabase.rpc(
+            'capture_daily_top_scores',
+            params: {'p_game_id': gameId},
+          );
+        } catch (leaderboardError) {
+          debugPrint('Daily leaderboard capture failed: $leaderboardError');
+        }
       }
 
       _timer?.cancel();
